@@ -5,6 +5,7 @@ function ObjLoading:include(includes)
 		ObjCommon:include(includes)
 		ObjImage:include(includes)
 		ZoneCommon:include(includes)
+		gsctool:include(includes)
 		includedirs {
 			path.join(ProjectFolder(), "ObjLoading")
 		}
@@ -21,6 +22,8 @@ function ObjLoading:link(links)
 	links:linkto(minizip)
 	links:linkto(zlib)
 	links:linkto(libtomcrypt)
+	links:linkto(gsctool)
+	links:linkto(ufbx)
 end
 
 function ObjLoading:use()
@@ -64,4 +67,5 @@ function ObjLoading:project()
 		eigen:include(includes)
 		json:include(includes)
 		libtomcrypt:include(includes)
+		ufbx:include(includes)
 end

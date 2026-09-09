@@ -96,11 +96,13 @@ include "thirdparty/eigen.lua"
 include "thirdparty/libtomcrypt.lua"
 include "thirdparty/libtommath.lua"
 include "thirdparty/json.lua"
+include "thirdparty/gsc-tool.lua"
 include "thirdparty/minilzo.lua"
 include "thirdparty/minizip.lua"
 include "thirdparty/salsa20.lua"
 include "thirdparty/zlib.lua"
 include "thirdparty/lz4.lua"
+include "thirdparty/ufbx.lua"
 
 -- ThirdParty group: All projects that are external dependencies
 group "ThirdParty"
@@ -114,6 +116,8 @@ group "ThirdParty"
     salsa20:project()
     zlib:project()
     lz4:project()
+    gsctool:project()
+    ufbx:project()
 group ""
 
 -- ========================

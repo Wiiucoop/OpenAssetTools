@@ -22,3 +22,6 @@
 [submodule "thirdparty/gsc-tool"]
 	path = thirdparty/gsc-tool
 	url = https://github.com/xensik/gsc-tool.git
+[submodule "thirdparty/ufbx"]
+	path = thirdparty/ufbx
+	url = https://github.com/ufbx/ufbx

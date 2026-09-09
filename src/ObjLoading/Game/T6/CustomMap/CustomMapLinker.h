@@ -10,6 +10,7 @@
 #include <float.h>
 
 #include <nlohmann/json.hpp>
+#include <sstream>
 using json = nlohmann::json;
 
 class CustomMapLinker
@@ -146,7 +147,8 @@ private:
         materialTemplateJson["textures"][1]["image"] = imageName;
 
         AssetRegistration<AssetMaterial> registration(imageName, material);
-        if (!LoadMaterialAsJson(materialTemplateJson, *material, m_memory, m_context, registration))
+        std::istringstream materialTemplateStream(materialTemplateJson.dump());
+        if (!LoadMaterialAsJson(materialTemplateStream, *material, m_memory, m_context, registration))
         {
             printf("WARN: failed to convert image %s to a material.\n", imageName.c_str());
             return NULL;
