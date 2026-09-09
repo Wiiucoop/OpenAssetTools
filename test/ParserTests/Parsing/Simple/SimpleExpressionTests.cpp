@@ -5,7 +5,6 @@
 #include "Parsing/Simple/Expression/SimpleExpressionMatchers.h"
 #include "Parsing/Simple/Matcher/SimpleMatcherFactory.h"
 #include "Parsing/Simple/SimpleParserValue.h"
-#include "Utils/ClassUtils.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
@@ -51,7 +50,7 @@ namespace test::parsing::simple::expression
         {
         }
 
-        _NODISCARD SimpleExpressionTestState* GetState() const
+        [[nodiscard]] SimpleExpressionTestState* GetState() const
         {
             return m_state.get();
         }
@@ -129,7 +128,7 @@ namespace test::parsing::simple::expression
             return m_sequence->MatchSequence(m_lexer.get(), m_state, m_consumed_token_count);
         }
 
-        _NODISCARD bool PerformIntegrationTest() const
+        [[nodiscard]] bool PerformIntegrationTest() const
         {
             REQUIRE(m_lexer);
             REQUIRE(m_parser);
@@ -809,6 +808,24 @@ namespace test::parsing::simple::expression
 
     namespace it
     {
+        TEST_CASE("SimpleExpressionsIT: Can parse UTF-8 BOM-prefixed input", "[parsing][simple][expression][it]")
+        {
+            SimpleExpressionTestsHelper helper;
+            helper.String("\xEF\xBB\xBF"
+                          "6+5");
+
+            const auto result = helper.PerformIntegrationTest();
+
+            REQUIRE(result);
+
+            const auto& expression = helper.m_state->m_expression;
+            REQUIRE(expression->IsStatic());
+
+            const auto value = expression->EvaluateStatic();
+            REQUIRE(value.m_type == SimpleExpressionValue::Type::INT);
+            REQUIRE(value.m_int_value == 11);
+        }
+
         TEST_CASE("SimpleExpressionsIT: Can parse subtraction without space", "[parsing][simple][expression][it]")
         {
             SimpleExpressionTestsHelper helper;

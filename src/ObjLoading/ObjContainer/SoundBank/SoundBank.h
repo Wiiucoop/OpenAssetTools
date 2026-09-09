@@ -4,7 +4,6 @@
 #include "ObjContainer/ObjContainerRepository.h"
 #include "ObjContainer/SoundBank/SoundBankTypes.h"
 #include "SearchPath/ISearchPath.h"
-#include "Utils/ClassUtils.h"
 #include "Utils/FileUtils.h"
 #include "Utils/ObjStream.h"
 #include "Zone/Zone.h"
@@ -20,12 +19,12 @@ public:
     SoundBankEntryInputStream();
     SoundBankEntryInputStream(std::unique_ptr<std::istream> stream, SoundAssetBankEntry entry);
 
-    _NODISCARD bool IsOpen() const;
+    [[nodiscard]] bool IsOpen() const;
 };
 
 class SoundBank final : public ObjContainerReferenceable
 {
-    static constexpr uint32_t MAGIC = FileUtils::MakeMagic32('2', 'U', 'X', '#');
+    static constexpr uint32_t MAGIC = utils::MakeMagic32('2', 'U', 'X', '#');
     static constexpr uint32_t VERSION = 14u;
 
     std::string m_file_name;
@@ -58,8 +57,8 @@ public:
     std::string GetName() override;
 
     bool Initialize();
-    _NODISCARD const std::vector<std::string>& GetDependencies() const;
+    [[nodiscard]] const std::vector<std::string>& GetDependencies() const;
 
-    _NODISCARD bool VerifyChecksum(const SoundAssetBankChecksum& checksum) const;
-    _NODISCARD SoundBankEntryInputStream GetEntryStream(unsigned int id) const;
+    [[nodiscard]] bool VerifyChecksum(const SoundAssetBankChecksum& checksum) const;
+    [[nodiscard]] SoundBankEntryInputStream GetEntryStream(unsigned int id) const;
 };

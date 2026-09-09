@@ -9,59 +9,6 @@
 namespace IW4
 {
 #endif
-    enum XAssetType
-    {
-        ASSET_TYPE_PHYSPRESET = 0x0,
-        ASSET_TYPE_PHYSCOLLMAP = 0x1,
-        ASSET_TYPE_XANIMPARTS = 0x2,
-        ASSET_TYPE_XMODEL_SURFS = 0x3,
-        ASSET_TYPE_XMODEL = 0x4,
-        ASSET_TYPE_MATERIAL = 0x5,
-        ASSET_TYPE_PIXELSHADER = 0x6,
-        ASSET_TYPE_VERTEXSHADER = 0x7,
-        ASSET_TYPE_VERTEXDECL = 0x8,
-        ASSET_TYPE_TECHNIQUE_SET = 0x9,
-        ASSET_TYPE_IMAGE = 0xA,
-        ASSET_TYPE_SOUND = 0xB,
-        ASSET_TYPE_SOUND_CURVE = 0xC,
-        ASSET_TYPE_LOADED_SOUND = 0xD,
-        ASSET_TYPE_CLIPMAP_SP = 0xE,
-        ASSET_TYPE_CLIPMAP_MP = 0xF,
-        ASSET_TYPE_COMWORLD = 0x10,
-        ASSET_TYPE_GAMEWORLD_SP = 0x11,
-        ASSET_TYPE_GAMEWORLD_MP = 0x12,
-        ASSET_TYPE_MAP_ENTS = 0x13,
-        ASSET_TYPE_FXWORLD = 0x14,
-        ASSET_TYPE_GFXWORLD = 0x15,
-        ASSET_TYPE_LIGHT_DEF = 0x16,
-        ASSET_TYPE_UI_MAP = 0x17,
-        ASSET_TYPE_FONT = 0x18,
-        ASSET_TYPE_MENULIST = 0x19,
-        ASSET_TYPE_MENU = 0x1A,
-        ASSET_TYPE_LOCALIZE_ENTRY = 0x1B,
-        ASSET_TYPE_WEAPON = 0x1C,
-        ASSET_TYPE_SNDDRIVER_GLOBALS = 0x1D,
-        ASSET_TYPE_FX = 0x1E,
-        ASSET_TYPE_IMPACT_FX = 0x1F,
-        ASSET_TYPE_AITYPE = 0x20,
-        ASSET_TYPE_MPTYPE = 0x21,
-        ASSET_TYPE_CHARACTER = 0x22,
-        ASSET_TYPE_XMODELALIAS = 0x23,
-        ASSET_TYPE_RAWFILE = 0x24,
-        ASSET_TYPE_STRINGTABLE = 0x25,
-        ASSET_TYPE_LEADERBOARD = 0x26,
-        ASSET_TYPE_STRUCTURED_DATA_DEF = 0x27,
-        ASSET_TYPE_TRACER = 0x28,
-        ASSET_TYPE_VEHICLE = 0x29,
-        ASSET_TYPE_ADDON_MAP_ENTS = 0x2A,
-
-        ASSET_TYPE_COUNT,
-        ASSET_TYPE_STRING = ASSET_TYPE_COUNT,
-        ASSET_TYPE_ASSETLIST = 0x2C,
-
-        ASSET_TYPE_FULLCOUNT
-    };
-
     enum XFileBlock
     {
         XFILE_BLOCK_TEMP,
@@ -112,6 +59,8 @@ namespace IW4
     struct TracerDef;
     struct VehicleDef;
     struct AddonMapEnts;
+
+    typedef unsigned short ScriptString;
 
     union XAssetHeader
     {
@@ -239,8 +188,8 @@ namespace IW4
 
     struct Bounds
     {
-        float midPoint[3];
-        float halfSize[3];
+        vec3_t midPoint;
+        vec3_t halfSize;
     };
 
     struct cplane_s
@@ -318,14 +267,14 @@ namespace IW4
 
     union XAnimIndices
     {
-        char* _1;
+        unsigned char* _1;
         uint16_t* _2;
         void* data;
     };
 
     struct XAnimNotifyInfo
     {
-        uint16_t name;
+        ScriptString name;
         float time;
     };
 
@@ -340,14 +289,14 @@ namespace IW4
 
     union XAnimDynamicIndicesTrans
     {
-        char _1[1];
+        unsigned char _1[1];
         uint16_t _2[1];
     };
 
     struct type_align32(4) XAnimPartTransFrames
     {
-        float mins[3];
-        float size[3];
+        vec3_t mins;
+        vec3_t size;
         XAnimDynamicFrames frames;
         XAnimDynamicIndicesTrans indices;
     };
@@ -361,13 +310,13 @@ namespace IW4
     struct XAnimPartTrans
     {
         uint16_t size;
-        char smallTrans;
+        unsigned char smallTrans;
         XAnimPartTransData u;
     };
 
     union XAnimDynamicIndicesQuat2
     {
-        char _1[1];
+        unsigned char _1[1];
         uint16_t _2[1];
     };
 
@@ -396,7 +345,7 @@ namespace IW4
 
     union XAnimDynamicIndicesQuat
     {
-        char _1[1];
+        unsigned char _1[1];
         uint16_t _2[1];
     };
 
@@ -430,6 +379,29 @@ namespace IW4
         XAnimDeltaPartQuat* quat;
     };
 
+    enum XAnimPartType
+    {
+        PART_TYPE_NO_QUAT = 0x0,
+        PART_TYPE_HALF_QUAT = 0x1,
+        PART_TYPE_FULL_QUAT = 0x2,
+        PART_TYPE_HALF_QUAT_NO_SIZE = 0x3,
+        PART_TYPE_FULL_QUAT_NO_SIZE = 0x4,
+        PART_TYPE_SMALL_TRANS = 0x5,
+        PART_TYPE_TRANS = 0x6,
+        PART_TYPE_TRANS_NO_SIZE = 0x7,
+        PART_TYPE_NO_TRANS = 0x8,
+        PART_TYPE_ALL = 0x9,
+
+        PART_TYPE_COUNT
+    };
+
+    enum XAnimFlags
+    {
+        ANIM_LOOP = 0x1,
+        ANIM_DELTA = 0x2,
+        ANIM_DELTA_3D = 0x4,
+    };
+
     struct XAnimParts
     {
         const char* name;
@@ -439,21 +411,21 @@ namespace IW4
         uint16_t randomDataByteCount;
         uint16_t randomDataIntCount;
         uint16_t numframes;
-        char flags;
-        unsigned char boneCount[10];
-        char notifyCount;
-        char assetType;
+        unsigned char flags;
+        unsigned char boneCount[PART_TYPE_COUNT];
+        unsigned char notifyCount;
+        unsigned char assetType;
         bool isDefault;
         unsigned int randomDataShortCount;
         unsigned int indexCount;
         float framerate;
         float frequency;
-        uint16_t* names;
-        char* dataByte;
+        ScriptString* names;
+        unsigned char* dataByte;
         int16_t* dataShort;
         int* dataInt;
         int16_t* randomDataShort;
-        char* randomDataByte;
+        unsigned char* randomDataByte;
         int* randomDataInt;
         XAnimIndices indices;
         XAnimNotifyInfo* notify;
@@ -491,7 +463,7 @@ namespace IW4
 
     struct type_align(16) GfxPackedVertex
     {
-        float xyz[3];
+        vec3_t xyz;
         float binormalSign;
         GfxColor color;
         PackedTexCoords texCoord;
@@ -519,8 +491,8 @@ namespace IW4
 
     struct XSurfaceCollisionTree
     {
-        float trans[3];
-        float scale[3];
+        vec3_t trans;
+        vec3_t scale;
         unsigned int nodeCount;
         XSurfaceCollisionNode* nodes;
         unsigned int leafCount;
@@ -536,7 +508,12 @@ namespace IW4
         XSurfaceCollisionTree* collisionTree;
     };
 
-    typedef tdef_align32(16) uint16_t r_index16_t;
+    struct XSurfaceTri
+    {
+        uint16_t i[3];
+    };
+
+    typedef tdef_align32(16) XSurfaceTri XSurfaceTri16;
 
     struct XSurface
     {
@@ -547,7 +524,7 @@ namespace IW4
         char zoneHandle;
         uint16_t baseTriIndex;
         uint16_t baseVertIndex;
-        r_index16_t (*triIndices)[3];
+        XSurfaceTri16* triIndices;
         XSurfaceVertexInfo vertInfo;
         GfxPackedVertex* verts0;
         unsigned int vertListCount;
@@ -602,9 +579,14 @@ namespace IW4
 
     struct DObjAnimMat
     {
-        float quat[4];
-        float trans[3];
+        vec4_t quat;
+        vec3_t trans;
         float transWeight;
+    };
+
+    struct XModelQuat
+    {
+        int16_t v[4];
     };
 
     struct XModel
@@ -616,18 +598,18 @@ namespace IW4
         char lodRampType;
         float scale;
         unsigned int noScalePartBits[6];
-        uint16_t* boneNames;
+        ScriptString* boneNames;
         unsigned char* parentList;
-        int16_t (*quats)[4];
-        float (*trans)[3];
+        XModelQuat* quats;
+        float* trans;
         unsigned char* partClassification;
         DObjAnimMat* baseMat;
         Material** materialHandles;
         XModelLodInfo lodInfo[4];
         char maxLoadedLod;
         unsigned char numLods;
-        unsigned char collLod;
-        char flags;
+        char collLod;
+        unsigned char flags;
         XModelCollSurf_s* collSurfs;
         int numCollSurfs;
         int contents;
@@ -1169,6 +1151,18 @@ namespace IW4
         int platform[2];
     };
 
+    enum MapType
+    {
+        MAPTYPE_NONE = 0x0,
+        MAPTYPE_INVALID1 = 0x1,
+        MAPTYPE_1D = 0x2,
+        MAPTYPE_2D = 0x3,
+        MAPTYPE_3D = 0x4,
+        MAPTYPE_CUBE = 0x5,
+
+        MAPTYPE_COUNT
+    };
+
     enum TextureSemantic
     {
         TS_2D = 0x0,
@@ -1183,6 +1177,19 @@ namespace IW4
         TS_UNUSED_5 = 0x9,
         TS_UNUSED_6 = 0xA,
         TS_WATER_MAP = 0xB,
+    };
+
+    enum ImageCategory
+    {
+        IMG_CATEGORY_UNKNOWN = 0x0,
+        IMG_CATEGORY_AUTO_GENERATED = 0x1,
+        IMG_CATEGORY_LIGHTMAP = 0x2,
+        IMG_CATEGORY_LOAD_FROM_FILE = 0x3,
+        IMG_CATEGORY_RAW = 0x4,
+        IMG_CATEGORY_FIRST_UNMANAGED = 0x5,
+        IMG_CATEGORY_WATER = 0x5,
+        IMG_CATEGORY_RENDERTARGET = 0x6,
+        IMG_CATEGORY_TEMP = 0x7,
     };
 
     struct GfxImage
@@ -1223,9 +1230,13 @@ namespace IW4
         STREAM_SRC_COLOR = 0x1,
         STREAM_SRC_TEXCOORD_0 = 0x2,
         STREAM_SRC_NORMAL = 0x3,
-        STREAM_SRC_TANGENT = 0x4,
-        STREAM_SRC_OPTIONAL_BEGIN = 0x5,
+
         STREAM_SRC_PRE_OPTIONAL_BEGIN = 0x4,
+
+        STREAM_SRC_TANGENT = 0x4,
+
+        STREAM_SRC_OPTIONAL_BEGIN = 0x5,
+
         STREAM_SRC_TEXCOORD_1 = 0x5,
         STREAM_SRC_TEXCOORD_2 = 0x6,
         STREAM_SRC_NORMAL_TRANSFORM_0 = 0x7,
@@ -1259,10 +1270,32 @@ namespace IW4
         unsigned char dest;
     };
 
+    enum MaterialVertexDeclType
+    {
+        VERTDECL_GENERIC = 0x0,
+        VERTDECL_PACKED = 0x1,
+        VERTDECL_WORLD = 0x2,
+        VERTDECL_WORLD_T1N0 = 0x3,
+        VERTDECL_WORLD_T1N1 = 0x4,
+        VERTDECL_WORLD_T2N0 = 0x5,
+        VERTDECL_WORLD_T2N1 = 0x6,
+        VERTDECL_WORLD_T2N2 = 0x7,
+        VERTDECL_WORLD_T3N0 = 0x8,
+        VERTDECL_WORLD_T3N1 = 0x9,
+        VERTDECL_WORLD_T3N2 = 0xA,
+        VERTDECL_WORLD_T4N0 = 0xB,
+        VERTDECL_WORLD_T4N1 = 0xC,
+        VERTDECL_WORLD_T4N2 = 0xD,
+        VERTDECL_POS_TEX = 0xE,
+        VERTDECL_STATICMODELCACHE = 0xF,
+
+        VERTDECL_COUNT
+    };
+
     struct MaterialVertexStreamRouting
     {
         MaterialStreamRouting data[13];
-        void /*IDirect3DVertexDeclaration9*/* decl[16];
+        void /*IDirect3DVertexDeclaration9*/* decl[VERTDECL_COUNT];
     };
 
     struct MaterialVertexDeclaration
@@ -1337,15 +1370,6 @@ namespace IW4
         CUSTOM_SAMPLER_LIGHTMAP_SECONDARY = 0x2,
 
         CUSTOM_SAMPLER_COUNT
-    };
-
-    struct CodeSamplerSource
-    {
-        const char* name;
-        MaterialTextureSource source;
-        CodeSamplerSource* subtable;
-        int arrayCount;
-        int arrayStride;
     };
 
     enum MaterialType
@@ -1602,18 +1626,20 @@ namespace IW4
 
     enum TechniqueFlags
     {
-        // Guesses purely based on data analysis:
-        TECHNIQUE_FLAG_1 = 0x1,   // uses resolvedPostSun code sampler // MTL_TECHFLAG_NEEDS_RESOLVED_POST_SUN
-        TECHNIQUE_FLAG_2 = 0x2,   // uses resolvedScene code sampler MTL_TECHFLAG_NEEDS_RESOLVED_SCENE
-        TECHNIQUE_FLAG_4 = 0x4,   // zprepass only
-        TECHNIQUE_FLAG_8 = 0x8,   // build_floatz only
-        TECHNIQUE_FLAG_10 = 0x10, // build_shadowmap_depth + build_shadowmap_model only
-        TECHNIQUE_FLAG_20 =
-            0x20, // techniques with _i_ in its name (all use texcoord[1] in decl -> other optional stream sources are not used at all so might be any optional)
-        TECHNIQUE_FLAG_40 = 0x40,   // uses code constant light.spotDir or light.spotFactors
-        TECHNIQUE_FLAG_80 = 0x80,   // uses floatZ sampler and does not have 0x100 flag
-        TECHNIQUE_FLAG_100 = 0x100, // distortion_scale_zfeather_dtex + distortion_scale_ua_zfeather + distortion_scale_zfeather
-        TECHNIQUE_FLAG_200 = 0x200, // ?
+        MTL_TECHFLAG_NEEDS_RESOLVED_POST_SUN = 0x1,
+        MTL_TECHFLAG_NEEDS_RESOLVED_SCENE = 0x2,
+
+        // These 3 are set so rare, it seems like they are just based on name just like other games do
+        MTL_TECHFLAG_ZPREPASS = 0x4,
+        MTL_TECHFLAG_BUILD_FLOATZ = 0x8,
+        MTL_TECHFLAG_BUILD_SHADOW_MAP_DEPTH_OR_MODEL = 0x10,
+
+        MTL_TECHFLAG_DECL_HAS_OPTIONAL_SOURCE = 0x20,
+
+        MTL_TECHFLAG_USES_LIGHT_SPOT_FACTORS = 0x40,
+        MTL_TECHFLAG_USES_FLOATZ = 0x80,             // uses floatZ sampler and does not have 0x100 flag
+        MTL_TECHFLAG_USES_DISTORTION_FLOATZ = 0x100, // distortion_scale_zfeather_dtex + distortion_scale_ua_zfeather + distortion_scale_zfeather
+        TECHNIQUE_FLAG_200 = 0x200,                  // ?
     };
 
     struct MaterialTechnique
@@ -1684,10 +1710,26 @@ namespace IW4
         TECHNIQUE_COUNT
     };
 
+    enum MaterialWorldVertexFormat : unsigned char
+    {
+        MTL_WORLDVERT_TEX_1_NRM_1 = 0x0,
+        MTL_WORLDVERT_TEX_2_NRM_1 = 0x1,
+        MTL_WORLDVERT_TEX_2_NRM_2 = 0x2,
+        MTL_WORLDVERT_TEX_3_NRM_1 = 0x3,
+        MTL_WORLDVERT_TEX_3_NRM_2 = 0x4,
+        MTL_WORLDVERT_TEX_3_NRM_3 = 0x5,
+        MTL_WORLDVERT_TEX_4_NRM_1 = 0x6,
+        MTL_WORLDVERT_TEX_4_NRM_2 = 0x7,
+        MTL_WORLDVERT_TEX_4_NRM_3 = 0x8,
+        MTL_WORLDVERT_TEX_5_NRM_1 = 0x9,
+        MTL_WORLDVERT_TEX_5_NRM_2 = 0xA,
+        MTL_WORLDVERT_TEX_5_NRM_3 = 0xB,
+    };
+
     struct MaterialTechniqueSet
     {
         const char* name;
-        unsigned char worldVertFormat;
+        MaterialWorldVertexFormat worldVertFormat;
         bool hasBeenUploaded;
         unsigned char unused[1];
         MaterialTechniqueSet* remappedTechniqueSet;
@@ -2007,8 +2049,8 @@ namespace IW4
 
     union entryInternalData
     {
-        int op;
         Operand operand;
+        int op;
     };
 
     enum expressionEntryType : int
@@ -2271,9 +2313,9 @@ namespace IW4
         int style;
         int border;
         int ownerDraw;
-        int ownerDrawFlags;
+        unsigned int ownerDrawFlags;
         float borderSize;
-        int staticFlags;
+        unsigned int staticFlags;
         unsigned int dynamicFlags[1];
         int nextTime;
         float foreColor[4];
@@ -2343,14 +2385,14 @@ namespace IW4
         int gameMsgWindowIndex;
         int gameMsgWindowMode;
         const char* text;
-        int itemFlags;
+        unsigned int itemFlags;
         menuDef_t* parent;
         MenuEventHandlerSet* mouseEnterText;
         MenuEventHandlerSet* mouseExitText;
         MenuEventHandlerSet* mouseEnter;
         MenuEventHandlerSet* mouseExit;
         MenuEventHandlerSet* action;
-        MenuEventHandlerSet* accept;
+        MenuEventHandlerSet* onAccept;
         MenuEventHandlerSet* onFocus;
         MenuEventHandlerSet* leaveFocus;
         const char* dvar;
@@ -2425,22 +2467,23 @@ namespace IW4
 
     enum FxElemType
     {
-        FX_ELEM_TYPE_SPRITE_BILLBOARD = 0x0,
-        FX_ELEM_TYPE_SPRITE_ORIENTED = 0x1,
-        FX_ELEM_TYPE_TAIL = 0x2,
-        FX_ELEM_TYPE_TRAIL = 0x3,
-        FX_ELEM_TYPE_CLOUD = 0x4,
-        FX_ELEM_TYPE_SPARK_CLOUD = 0x5,
-        FX_ELEM_TYPE_SPARK_FOUNTAIN = 0x6,
-        FX_ELEM_TYPE_MODEL = 0x7,
-        FX_ELEM_TYPE_OMNI_LIGHT = 0x8,
-        FX_ELEM_TYPE_SPOT_LIGHT = 0x9,
-        FX_ELEM_TYPE_SOUND = 0xA,
-        FX_ELEM_TYPE_DECAL = 0xB,
-        FX_ELEM_TYPE_RUNNER = 0xC,
-        FX_ELEM_TYPE_COUNT = 0xD,
-        FX_ELEM_TYPE_LAST_SPRITE = 0x3,
-        FX_ELEM_TYPE_LAST_DRAWN = 0x9,
+        FX_ELEM_TYPE_SPRITE_BILLBOARD,
+        FX_ELEM_TYPE_SPRITE_ORIENTED,
+        FX_ELEM_TYPE_TAIL,
+        FX_ELEM_TYPE_TRAIL,
+        FX_ELEM_TYPE_CLOUD,
+        FX_ELEM_TYPE_SPARK_CLOUD,
+        FX_ELEM_TYPE_SPARK_FOUNTAIN,
+        FX_ELEM_TYPE_MODEL,
+        FX_ELEM_TYPE_OMNI_LIGHT,
+        FX_ELEM_TYPE_SPOT_LIGHT,
+        FX_ELEM_TYPE_SOUND,
+        FX_ELEM_TYPE_DECAL,
+        FX_ELEM_TYPE_RUNNER,
+
+        FX_ELEM_TYPE_COUNT,
+        FX_ELEM_TYPE_LAST_SPRITE = FX_ELEM_TYPE_TRAIL,
+        FX_ELEM_TYPE_LAST_DRAWN = FX_ELEM_TYPE_SPOT_LIGHT,
     };
 
     struct FxIntRange
@@ -2656,9 +2699,9 @@ namespace IW4
         uint16_t letter;
         char x0;
         char y0;
-        char dx;
-        char pixelWidth;
-        char pixelHeight;
+        unsigned char dx;
+        unsigned char pixelWidth;
+        unsigned char pixelHeight;
         float s0;
         float t0;
         float s1;
@@ -3002,7 +3045,7 @@ namespace IW4
         uint16_t numsides;
         uint16_t glassPieceIndex;
         cbrushside_t* sides;
-        char* baseAdjacentSide;
+        cbrushedge_t* baseAdjacentSide;
         int16_t axialMaterialNum[2][3];
         char firstAdjacentSideOffsets[2][3];
         char edgeCount[2][3];

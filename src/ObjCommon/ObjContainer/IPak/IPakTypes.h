@@ -6,12 +6,13 @@
 
 namespace ipak_consts
 {
-    static constexpr uint32_t IPAK_MAGIC = FileUtils::MakeMagic32('K', 'A', 'P', 'I');
+    static constexpr uint32_t IPAK_MAGIC_LITTLE_ENDIAN = utils::MakeMagic32('K', 'A', 'P', 'I');
+    static constexpr uint32_t IPAK_MAGIC_BIG_ENDIAN = utils::MakeMagic32('I', 'P', 'A', 'K');
     static constexpr uint32_t IPAK_VERSION = 0x50000;
 
     static constexpr uint32_t IPAK_INDEX_SECTION = 1;
     static constexpr uint32_t IPAK_DATA_SECTION = 2;
-    static constexpr uint32_t IPAK_BRANDING_SECTION = FileUtils::MakeMagic32('M', 'E', 'T', 'A');
+    static constexpr uint32_t IPAK_BRANDING_SECTION = utils::MakeMagic32('M', 'E', 'T', 'A');
 
     static constexpr size_t IPAK_CHUNK_SIZE = 0x8000;
     static constexpr size_t IPAK_CHUNK_COUNT_PER_READ = 0x8;
@@ -60,18 +61,28 @@ struct IPakIndexEntry
     uint32_t size;
 };
 
-struct IPakDataBlockCountAndOffset
+union IPakDataBlockCountAndOffset
 {
-    uint32_t offset : 24;
-    uint32_t count : 8;
+    struct
+    {
+        uint32_t offset : 24;
+        uint32_t count : 8;
+    };
+
+    uint32_t raw;
 };
 
 static_assert(sizeof(IPakDataBlockCountAndOffset) == 4);
 
-struct IPakDataBlockCommand
+union IPakDataBlockCommand
 {
-    uint32_t size : 24;
-    uint32_t compressed : 8;
+    struct
+    {
+        uint32_t size : 24;
+        uint32_t compressed : 8;
+    };
+
+    uint32_t raw;
 };
 
 static_assert(sizeof(IPakDataBlockCommand) == 4);

@@ -42,7 +42,7 @@ public:
 class ZoneAssetCreationStateContainer
 {
 public:
-    ZoneAssetCreationStateContainer(Zone& zone)
+    explicit ZoneAssetCreationStateContainer(Zone& zone)
         : m_injection(*this, zone)
     {
     }
@@ -52,14 +52,15 @@ public:
         static_assert(std::is_base_of_v<IZoneAssetCreationState, T>, "T must inherit IZoneAssetCreationState");
         // T must also have a public default constructor
 
-        const auto foundEntry = m_zone_asset_creation_states.find(typeid(T));
+        std::type_index typeId = typeid(T);
+        const auto foundEntry = m_zone_asset_creation_states.find(typeId);
         if (foundEntry != m_zone_asset_creation_states.end())
             return *dynamic_cast<T*>(foundEntry->second.get());
 
         auto newState = std::make_unique<T>();
         newState->Inject(m_injection);
         auto* newStatePtr = newState.get();
-        m_zone_asset_creation_states.emplace(std::make_pair<std::type_index, std::unique_ptr<IZoneAssetCreationState>>(typeid(T), std::move(newState)));
+        m_zone_asset_creation_states.emplace(std::move(typeId), std::move(newState));
 
         return *newStatePtr;
     }

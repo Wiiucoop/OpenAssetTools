@@ -111,6 +111,8 @@ struct XModelCommon
     std::vector<XModelVertex> m_vertices;
     std::vector<XModelVertexBoneWeights> m_vertex_bone_weights;
     XModelVertexBoneWeightCollection m_bone_weight_data;
+
+    void CalculateBoneLocalsFromGlobals();
 };
 
 struct VertexMergerPos
@@ -127,3 +129,10 @@ struct VertexMergerPos
 };
 
 typedef DistinctMapper<VertexMergerPos> VertexMerger;
+
+namespace xmodel
+{
+    constexpr auto DEFAULT_XMODEL_ROOT_BONE_NAME = "";
+
+    std::string GetJsonFileNameForAssetName(const std::string& assetName);
+} // namespace xmodel

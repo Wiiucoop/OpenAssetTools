@@ -88,7 +88,7 @@ namespace T6
     struct XRigidVertList;
     struct XSurface;
     struct XModel;
-    struct flameTable;
+    struct FlameTable;
     struct cStaticModel_s;
     struct FxElemVelStateSample;
     struct FxElemVisStateSample;
@@ -235,78 +235,6 @@ namespace T6
     struct Slug;
     struct FootstepTableDef;
     struct FootstepFXTableDef;
-
-    enum XAssetType
-    {
-        ASSET_TYPE_XMODELPIECES = 0x0,
-        ASSET_TYPE_PHYSPRESET = 0x1,
-        ASSET_TYPE_PHYSCONSTRAINTS = 0x2,
-        ASSET_TYPE_DESTRUCTIBLEDEF = 0x3,
-        ASSET_TYPE_XANIMPARTS = 0x4,
-        ASSET_TYPE_XMODEL = 0x5,
-        ASSET_TYPE_MATERIAL = 0x6,
-        ASSET_TYPE_TECHNIQUE_SET = 0x7,
-        ASSET_TYPE_IMAGE = 0x8,
-        ASSET_TYPE_SOUND = 0x9,
-        ASSET_TYPE_SOUND_PATCH = 0xA,
-        ASSET_TYPE_CLIPMAP = 0xB,
-        ASSET_TYPE_CLIPMAP_PVS = 0xC,
-        ASSET_TYPE_COMWORLD = 0xD,
-        ASSET_TYPE_GAMEWORLD_SP = 0xE,
-        ASSET_TYPE_GAMEWORLD_MP = 0xF,
-        ASSET_TYPE_MAP_ENTS = 0x10,
-        ASSET_TYPE_GFXWORLD = 0x11,
-        ASSET_TYPE_LIGHT_DEF = 0x12,
-        ASSET_TYPE_UI_MAP = 0x13,
-        ASSET_TYPE_FONT = 0x14,
-        ASSET_TYPE_FONTICON = 0x15,
-        ASSET_TYPE_MENULIST = 0x16,
-        ASSET_TYPE_MENU = 0x17,
-        ASSET_TYPE_LOCALIZE_ENTRY = 0x18,
-        ASSET_TYPE_WEAPON = 0x19,
-        ASSET_TYPE_WEAPONDEF = 0x1A,
-        ASSET_TYPE_WEAPON_VARIANT = 0x1B,
-        ASSET_TYPE_WEAPON_FULL = 0x1C,
-        ASSET_TYPE_ATTACHMENT = 0x1D,
-        ASSET_TYPE_ATTACHMENT_UNIQUE = 0x1E,
-        ASSET_TYPE_WEAPON_CAMO = 0x1F,
-        ASSET_TYPE_SNDDRIVER_GLOBALS = 0x20,
-        ASSET_TYPE_FX = 0x21,
-        ASSET_TYPE_IMPACT_FX = 0x22,
-        ASSET_TYPE_AITYPE = 0x23,
-        ASSET_TYPE_MPTYPE = 0x24,
-        ASSET_TYPE_MPBODY = 0x25,
-        ASSET_TYPE_MPHEAD = 0x26,
-        ASSET_TYPE_CHARACTER = 0x27,
-        ASSET_TYPE_XMODELALIAS = 0x28,
-        ASSET_TYPE_RAWFILE = 0x29,
-        ASSET_TYPE_STRINGTABLE = 0x2A,
-        ASSET_TYPE_LEADERBOARD = 0x2B,
-        ASSET_TYPE_XGLOBALS = 0x2C,
-        ASSET_TYPE_DDL = 0x2D,
-        ASSET_TYPE_GLASSES = 0x2E,
-        ASSET_TYPE_EMBLEMSET = 0x2F,
-        ASSET_TYPE_SCRIPTPARSETREE = 0x30,
-        ASSET_TYPE_KEYVALUEPAIRS = 0x31,
-        ASSET_TYPE_VEHICLEDEF = 0x32,
-        ASSET_TYPE_MEMORYBLOCK = 0x33,
-        ASSET_TYPE_ADDON_MAP_ENTS = 0x34,
-        ASSET_TYPE_TRACER = 0x35,
-        ASSET_TYPE_SKINNEDVERTS = 0x36,
-        ASSET_TYPE_QDB = 0x37,
-        ASSET_TYPE_SLUG = 0x38,
-        ASSET_TYPE_FOOTSTEP_TABLE = 0x39,
-        ASSET_TYPE_FOOTSTEPFX_TABLE = 0x3A,
-        ASSET_TYPE_ZBARRIER = 0x3B,
-        ASSET_TYPE_COUNT = 0x3C,
-        ASSET_TYPE_STRING = 0x3C,
-        ASSET_TYPE_ASSETLIST = 0x3D,
-        ASSET_TYPE_REPORT = 0x3E,
-        ASSET_TYPE_DEPEND = 0x3F,
-        ASSET_TYPE_FULL_COUNT = 0x40,
-
-        ASSET_TYPE_CUSTOM_MAP = 0x41
-    };
 
     enum XFileBlock
     {
@@ -477,7 +405,8 @@ namespace T6
         CONSTRAINT_LAUNCH = 0x7,
         CONSTRAINT_ROPE = 0x8,
         CONSTRAINT_LIGHT = 0x9,
-        NUM_CONSTRAINT_TYPES = 0xA,
+
+        NUM_CONSTRAINT_TYPES
     };
 
     enum AttachPointType
@@ -540,9 +469,25 @@ namespace T6
 
     union XAnimIndices
     {
-        char* _1;
+        unsigned char* _1;
         uint16_t* _2;
         void* data;
+    };
+
+    enum XAnimPartType
+    {
+        PART_TYPE_NO_QUAT = 0x0,
+        PART_TYPE_HALF_QUAT = 0x1,
+        PART_TYPE_FULL_QUAT = 0x2,
+        PART_TYPE_HALF_QUAT_NO_SIZE = 0x3,
+        PART_TYPE_FULL_QUAT_NO_SIZE = 0x4,
+        PART_TYPE_SMALL_TRANS = 0x5,
+        PART_TYPE_TRANS = 0x6,
+        PART_TYPE_TRANS_NO_SIZE = 0x7,
+        PART_TYPE_NO_TRANS = 0x8,
+        PART_TYPE_ALL = 0x9,
+
+        PART_TYPE_COUNT
     };
 
     struct XAnimParts
@@ -559,9 +504,9 @@ namespace T6
         bool bDelta3D;
         bool bLeftHandGripIK;
         unsigned int streamedFileSize;
-        unsigned char boneCount[10];
+        unsigned char boneCount[PART_TYPE_COUNT];
         unsigned char notifyCount;
-        char assetType;
+        unsigned char assetType;
         bool isDefault;
         unsigned int randomDataShortCount;
         unsigned int indexCount;
@@ -570,11 +515,11 @@ namespace T6
         float primedLength;
         float loopEntryTime;
         uint16_t* names;
-        char* dataByte;
+        unsigned char* dataByte;
         int16_t* dataShort;
         int* dataInt;
         int16_t* randomDataShort;
-        char* randomDataByte;
+        unsigned char* randomDataByte;
         int* randomDataInt;
         XAnimIndices indices;
         XAnimNotifyInfo* notify;
@@ -702,6 +647,8 @@ namespace T6
         MTL_GAMEFLAG_400 = 0x400,
         MTL_GAMEFLAG_800 = 0x800,
         MTL_GAMEFLAG_1000 = 0x1000,
+        MTL_GAMEFLAG_2000 = 0x2000,
+        MTL_GAMEFLAG_4000 = 0x4000,
     };
 
     struct type_align32(8) MaterialInfo
@@ -840,10 +787,23 @@ namespace T6
         TECHNIQUE_COUNT
     };
 
+    enum MaterialWorldVertexFormat : unsigned char
+    {
+        MTL_WORLDVERT_TEX_1_NRM_1 = 0x0,
+        MTL_WORLDVERT_TEX_2_NRM_1 = 0x1,
+        MTL_WORLDVERT_TEX_2_NRM_2 = 0x2,
+        MTL_WORLDVERT_TEX_3_NRM_1 = 0x3,
+        MTL_WORLDVERT_TEX_3_NRM_2 = 0x4,
+        MTL_WORLDVERT_TEX_3_NRM_3 = 0x5,
+        MTL_WORLDVERT_TEX_4_NRM_1 = 0x6,
+        MTL_WORLDVERT_TEX_4_NRM_2 = 0x7,
+        MTL_WORLDVERT_TEX_4_NRM_3 = 0x8,
+    };
+
     struct MaterialTechniqueSet
     {
         const char* name;
-        char worldVertFormat;
+        MaterialWorldVertexFormat worldVertFormat;
         MaterialTechnique* techniques[36];
     };
 
@@ -877,6 +837,18 @@ namespace T6
         uint32_t adjacentRight : 15;
         uint32_t compressed : 1;
         uint32_t valid : 1;
+    };
+
+    enum MapType : unsigned char
+    {
+        MAPTYPE_NONE = 0x0,
+        MAPTYPE_INVALID1 = 0x1,
+        MAPTYPE_INVALID2 = 0x2,
+        MAPTYPE_2D = 0x3,
+        MAPTYPE_3D = 0x4,
+        MAPTYPE_CUBE = 0x5,
+
+        MAPTYPE_COUNT
     };
 
     enum TextureSemantic
@@ -929,7 +901,7 @@ namespace T6
     struct GfxImage
     {
         GfxTexture texture;
-        char mapType;
+        MapType mapType;
         char semantic;
         char category;
         bool delayLoadPixels;
@@ -1349,8 +1321,6 @@ namespace T6
         vec3_t sunFxPosition;
     };
 
-    typedef tdef_align32(4) GfxDrawSurf GfxDrawSurf_align4;
-
     struct GfxWorldDpvsStatic
     {
         unsigned int smodelCount;
@@ -1373,7 +1343,7 @@ namespace T6
         GfxStaticModelInst* smodelInsts;
         GfxSurface* surfaces;
         GfxStaticModelDrawInst* smodelDrawInsts;
-        GfxDrawSurf_align4* surfaceMaterials;
+        GfxDrawSurf* surfaceMaterials;
         raw_byte128* surfaceCastsSunShadow;
         raw_byte128* surfaceCastsShadow;
         raw_byte128* smodelCastsShadow;
@@ -2767,6 +2737,14 @@ namespace T6
         float transWeight;
     };
 
+    enum XSurfaceFlag
+    {
+        XSURFACE_FLAG_QUANTIZED = 0x1,
+        XSURFACE_FLAG_SKINNED = 0x2,
+        XSURFACE_FLAG_CONSTANT_COLOR = 0x4,
+        XSURFACE_FLAG_DEFORMED = 0x80,
+    };
+
     struct XSurfaceVertexInfo
     {
         int16_t vertCount[4];
@@ -3054,18 +3032,77 @@ namespace T6
         void /*ID3D11RasterizerState*/* rasterizerState;
     };
 
+    enum VertexShaderPrecompiledIndex : unsigned char
+    {
+        VERTEX_SHADER_NONE = 0x0,
+        VERTEX_SHADER_MODEL_LIT,
+        VERTEX_SHADER_MODEL_LIT_LIGHTMAP_VC,
+        VERTEX_SHADER_MODEL_UNLIT,
+    };
+
+    enum CustomSampler
+    {
+        CUSTOM_SAMPLER_REFLECTION_PROBE = 0,
+        CUSTOM_SAMPLER_LIGHTMAP_SECONDARY,
+
+        CUSTOM_SAMPLER_COUNT
+    };
+
+    enum MaterialType : unsigned char
+    {
+        MTL_TYPE_DEFAULT = 0x0,
+        MTL_TYPE_MODEL,                // m_
+        MTL_TYPE_MODEL_VERTCOL,        // mc_
+        MTL_TYPE_MODEL_LIGHTMAP_VC,    // mlv_
+        MTL_TYPE_WORLD_VERTCOL,        // wc_
+        MTL_TYPE_PACKED_WORLD_VERTCOL, // wpc_
+        MTL_TYPE_QUANT_WORLD,          // wq_
+        MTL_TYPE_QUANT_WORLD_VERTCOL,  // wqc_
+
+        MTL_TYPE_COUNT,
+    };
+
+    struct MaterialTypeInfo
+    {
+        const char* materialPrefix;
+        const char* techniqueSetPrefix;
+    };
+
     struct MaterialPass
     {
         MaterialVertexDeclaration* vertexDecl;
         MaterialVertexShader* vertexShader;
         MaterialPixelShader* pixelShader;
-        char perPrimArgCount;
-        char perObjArgCount;
-        char stableArgCount;
-        char customSamplerFlags;
-        char precompiledIndex;
-        char materialType;
+        unsigned char perPrimArgCount;
+        unsigned char perObjArgCount;
+        unsigned char stableArgCount;
+        unsigned char customSamplerFlags;
+        VertexShaderPrecompiledIndex precompiledIndex;
+        MaterialType materialType;
         MaterialShaderArgument* args;
+    };
+
+    enum TechniqueFlags
+    {
+        MTL_TECHFLAG_NEEDS_RESOLVED_POST_SUN = 0x1,
+        MTL_TECHFLAG_NEEDS_RESOLVED_SCENE = 0x2,
+        MTL_TECHFLAG_ZPREPASS = 0x4,
+
+        // Vertex decl has optional source
+        MTL_TECHFLAG_DECL_HAS_OPTIONAL_SOURCE = 0x8,
+
+        MTL_TECHFLAG_USES_LIGHT_SPOT_FACTORS = 0x10,
+        TECHNIQUE_FLAG_20 = 0x20,
+        MTL_TECHFLAG_USES_FLOATZ = 0x40,
+
+        // Any material that has statebits according to any of the following sets this:
+        // - GFXS1_DEPTHWRITE set
+        // - Any depth test (No GFXS1_DEPTHTEST_DISABLE set)
+        // - Any polygon offset that is not GFXS1_POLYGON_OFFSET_0
+        TECHNIQUE_FLAG_80 = 0x80,
+
+        TECHNIQUE_FLAG_100 = 0x100,
+        TECHNIQUE_FLAG_200 = 0x200,
     };
 
     struct MaterialTechnique
@@ -3075,14 +3112,6 @@ namespace T6
         uint16_t passCount;
         MaterialPass passArray[1];
     };
-
-    /* struct __cppobj ID3D11View : ID3D11DeviceChild
-    {
-    };*/
-
-    /* struct __cppobj ID3D11ShaderResourceView : ID3D11View
-    {
-    };*/
 
     struct type_align32(4) GfxImageLoadDef
     {
@@ -3752,14 +3781,6 @@ namespace T6
         GfxImage* secondary;
     };
 
-    /* struct __cppobj ID3D11Resource : ID3D11DeviceChild
-    {
-    };*/
-
-    /* struct __cppobj ID3D11Buffer : ID3D11Resource
-    {
-    };*/
-
     struct type_align(4) GfxLightGridEntry
     {
         uint16_t colorsIndex;
@@ -4001,9 +4022,9 @@ namespace T6
         uint16_t letter;
         char x0;
         char y0;
-        char dx;
-        char pixelWidth;
-        char pixelHeight;
+        unsigned char dx;
+        unsigned char pixelWidth;
+        unsigned char pixelHeight;
         float s0;
         float t0;
         float s1;
@@ -4299,7 +4320,7 @@ namespace T6
         AMMO_COUNTER_CLIP_COUNT = 0x7,
     };
 
-    enum WeapOverlayInteface_t
+    enum WeapOverlayInterface_t
     {
         WEAPOVERLAYINTERFACE_NONE = 0x0,
         WEAPOVERLAYINTERFACE_JAVELIN = 0x1,
@@ -4675,7 +4696,7 @@ namespace T6
         float adsMoveSpeedScale;
         float sprintDurationScale;
         weapOverlayReticle_t overlayReticle;
-        WeapOverlayInteface_t overlayInterface;
+        WeapOverlayInterface_t overlayInterface;
         float overlayWidth;
         float overlayHeight;
         float fAdsBobFactor;
@@ -4948,8 +4969,8 @@ namespace T6
         int scanPauseTime;
         const char* flameTableFirstPerson;
         const char* flameTableThirdPerson;
-        flameTable* flameTableFirstPersonPtr;
-        flameTable* flameTableThirdPersonPtr;
+        FlameTable* flameTableFirstPersonPtr;
+        FlameTable* flameTableThirdPersonPtr;
         FxEffectDef* tagFx_preparationEffect;
         FxEffectDef* tagFlash_preparationEffect;
         bool doGibbing;
@@ -5440,22 +5461,23 @@ namespace T6
 
     enum FxElemType : char
     {
-        FX_ELEM_TYPE_SPRITE_BILLBOARD = 0x0,
-        FX_ELEM_TYPE_SPRITE_ORIENTED = 0x1,
-        FX_ELEM_TYPE_SPRITE_ROTATED = 0x2,
-        FX_ELEM_TYPE_TAIL = 0x3,
-        FX_ELEM_TYPE_LINE = 0x4,
-        FX_ELEM_TYPE_TRAIL = 0x5,
-        FX_ELEM_TYPE_CLOUD = 0x6,
-        FX_ELEM_TYPE_MODEL = 0x7,
-        FX_ELEM_TYPE_OMNI_LIGHT = 0x8,
-        FX_ELEM_TYPE_SPOT_LIGHT = 0x9,
-        FX_ELEM_TYPE_SOUND = 0xA,
-        FX_ELEM_TYPE_DECAL = 0xB,
-        FX_ELEM_TYPE_RUNNER = 0xC,
-        FX_ELEM_TYPE_COUNT = 0xD,
-        FX_ELEM_TYPE_LAST_SPRITE = 0x5,
-        FX_ELEM_TYPE_LAST_DRAWN = 0x9,
+        FX_ELEM_TYPE_SPRITE_BILLBOARD,
+        FX_ELEM_TYPE_SPRITE_ORIENTED,
+        FX_ELEM_TYPE_SPRITE_ROTATED,
+        FX_ELEM_TYPE_TAIL,
+        FX_ELEM_TYPE_LINE,
+        FX_ELEM_TYPE_TRAIL,
+        FX_ELEM_TYPE_CLOUD,
+        FX_ELEM_TYPE_MODEL,
+        FX_ELEM_TYPE_OMNI_LIGHT,
+        FX_ELEM_TYPE_SPOT_LIGHT,
+        FX_ELEM_TYPE_SOUND,
+        FX_ELEM_TYPE_DECAL,
+        FX_ELEM_TYPE_RUNNER,
+
+        FX_ELEM_TYPE_COUNT,
+        FX_ELEM_TYPE_LAST_SPRITE = FX_ELEM_TYPE_TRAIL,
+        FX_ELEM_TYPE_LAST_DRAWN = FX_ELEM_TYPE_SPOT_LIGHT,
     };
 
     struct FxElemDef
@@ -5645,7 +5667,7 @@ namespace T6
 
     union XAnimDynamicIndicesTrans
     {
-        char _1[1];
+        unsigned char _1[1];
         uint16_t _2[1];
     };
 
@@ -5666,14 +5688,8 @@ namespace T6
     struct XAnimPartTrans
     {
         uint16_t size;
-        char smallTrans;
+        unsigned char smallTrans;
         XAnimPartTransData u;
-    };
-
-    union XAnimDynamicIndicesDeltaQuat2
-    {
-        char _1[1];
-        uint16_t _2[1];
     };
 
     struct type_align(4) XQuat2
@@ -5681,10 +5697,16 @@ namespace T6
         int16_t value[2];
     };
 
+    union XAnimDynamicIndicesQuat2
+    {
+        unsigned char _1[1];
+        uint16_t _2[1];
+    };
+
     struct type_align32(4) XAnimDeltaPartQuatDataFrames2
     {
         XQuat2* frames;
-        XAnimDynamicIndicesDeltaQuat2 indices;
+        XAnimDynamicIndicesQuat2 indices;
     };
 
     union XAnimDeltaPartQuatData2
@@ -5699,21 +5721,21 @@ namespace T6
         XAnimDeltaPartQuatData2 u;
     };
 
-    union XAnimDynamicIndicesDeltaQuat
-    {
-        char _1[1];
-        uint16_t _2[1];
-    };
-
     struct type_align(4) XQuat
     {
         int16_t value[4];
     };
 
+    union XAnimDynamicIndicesQuat
+    {
+        unsigned char _1[1];
+        uint16_t _2[1];
+    };
+
     struct type_align32(4) XAnimDeltaPartQuatDataFrames
     {
         XQuat* frames;
-        XAnimDynamicIndicesDeltaQuat indices;
+        XAnimDynamicIndicesQuat indices;
     };
 
     union XAnimDeltaPartQuatData
@@ -5802,9 +5824,13 @@ namespace T6
         STREAM_SRC_TEXCOORD_0 = 0x2,
         STREAM_SRC_NORMAL = 0x3,
         STREAM_SRC_TANGENT = 0x4,
-        STREAM_SRC_TEXCOORD_1 = 0x5,
-        STREAM_SRC_OPTIONAL_BEGIN = 0x6,
+
         STREAM_SRC_PRE_OPTIONAL_BEGIN = 0x5,
+
+        STREAM_SRC_TEXCOORD_1 = 0x5,
+
+        STREAM_SRC_OPTIONAL_BEGIN = 0x6,
+
         STREAM_SRC_TEXCOORD_2 = 0x6,
         STREAM_SRC_TEXCOORD_3 = 0x7,
         STREAM_SRC_NORMAL_TRANSFORM_0 = 0x8,
@@ -5842,19 +5868,45 @@ namespace T6
 
     struct MaterialStreamRouting
     {
-        char source;
-        char dest;
+        unsigned char source;
+        unsigned char dest;
+    };
+
+    enum MaterialVertexDeclType
+    {
+        VERTDECL_GENERIC = 0x0,
+        VERTDECL_PACKED = 0x1,
+        VERTDECL_PACKED_LMAP_VC = 0x2,
+        VERTDECL_WORLD = 0x3,
+        VERTDECL_PACKED_WORLD = 0x4,
+        VERTDECL_PACKED_WORLD_T1N0 = 0x5,
+        VERTDECL_PACKED_WORLD_T1N1 = 0x6,
+        VERTDECL_PACKED_WORLD_T2N0 = 0x7,
+        VERTDECL_PACKED_WORLD_T2N1 = 0x8,
+        VERTDECL_PACKED_WORLD_T2N2 = 0x9,
+        VERTDECL_PACKED_WORLD_T3N0 = 0xA,
+        VERTDECL_PACKED_WORLD_T3N1 = 0xB,
+        VERTDECL_PACKED_WORLD_T3N2 = 0xC,
+        VERTDECL_PACKED_WORLD_T4N0 = 0xD,
+        VERTDECL_PACKED_WORLD_T4N1 = 0xE,
+        VERTDECL_PACKED_WORLD_T4N2 = 0xF,
+        VERTDECL_POS_TEX = 0x10,
+        VERTDECL_PARTICLECLOUD = 0x11,
+        VERTDECL_POS_COLOR = 0x12,
+        VERTDECL_POS_FP16TEX = 0x13,
+
+        VERTDECL_COUNT
     };
 
     struct MaterialVertexStreamRouting
     {
         MaterialStreamRouting data[16];
-        void /*ID3D11InputLayout*/* decl[20];
+        void /*ID3D11InputLayout*/* decl[VERTDECL_COUNT];
     };
 
     struct MaterialVertexDeclaration
     {
-        char streamCount;
+        unsigned char streamCount;
         bool hasOptionalSource;
         bool isLoaded;
         MaterialVertexStreamRouting routing;
@@ -5866,29 +5918,9 @@ namespace T6
 
         struct
         {
-            char textureIndex;
-            char samplerIndex;
+            uint8_t textureIndex;
+            uint8_t samplerIndex;
         };
-    };
-
-    enum MaterialType
-    {
-        MTL_TYPE_DEFAULT = 0x0,
-        MTL_TYPE_MODEL = 0x1,                // m_
-        MTL_TYPE_MODEL_VERTCOL = 0x2,        // mc_
-        MTL_TYPE_MODEL_LIGHTMAP_VC = 0x3,    // ?
-        MTL_TYPE_WORLD_VERTCOL = 0x4,        // wc_
-        MTL_TYPE_PACKED_WORLD_VERTCOL = 0x5, // ?
-        MTL_TYPE_QUANT_WORLD = 0x6,          // ?
-        MTL_TYPE_QUANT_WORLD_VERTCOL = 0x7,  // ?
-
-        MTL_TYPE_COUNT,
-    };
-
-    struct MaterialTypeInfo
-    {
-        const char* materialPrefix;
-        const char* techniqueSetPrefix;
     };
 
     enum MaterialConstantSource
@@ -5972,7 +6004,6 @@ namespace T6
         CONST_SRC_CODE_DEPTH_FROM_CLIP = 0x42,
         CONST_SRC_CODE_CODE_MESH_ARG_0 = 0x43,
         CONST_SRC_CODE_CODE_MESH_ARG_1 = 0x44,
-        CONST_SRC_CODE_CODE_MESH_ARG_LAST = 0x44,
         CONST_SRC_CODE_GRID_LIGHTING_COORDS_AND_VIS = 0x45,
         CONST_SRC_CODE_GRID_LIGHTING_SH_0 = 0x46,
         CONST_SRC_CODE_GRID_LIGHTING_SH_1 = 0x47,
@@ -6157,6 +6188,67 @@ namespace T6
         CONST_SRC_NONE,
     };
 
+    enum MaterialTextureSource
+    {
+        TEXTURE_SRC_CODE_BLACK = 0x0,
+        TEXTURE_SRC_CODE_WHITE = 0x1,
+        TEXTURE_SRC_CODE_IDENTITY_NORMAL_MAP = 0x2,
+        TEXTURE_SRC_CODE_MODEL_LIGHTING = 0x3,
+        TEXTURE_SRC_CODE_LIGHTMAP_PRIMARY = 0x4,
+        TEXTURE_SRC_CODE_LIGHTMAP_SECONDARY = 0x5,
+        TEXTURE_SRC_CODE_SHADOWMAP_SUN = 0x6,
+        TEXTURE_SRC_CODE_SHADOWMAP_SPOT = 0x7,
+        TEXTURE_SRC_CODE_FEEDBACK = 0x8,
+        TEXTURE_SRC_CODE_RESOLVED_POST_SUN = 0x9,
+        TEXTURE_SRC_CODE_RESOLVED_SCENE = 0xA,
+        TEXTURE_SRC_CODE_POST_EFFECT_SRC = 0xB,
+        TEXTURE_SRC_CODE_POST_EFFECT_GODRAYS = 0xC,
+        TEXTURE_SRC_CODE_POST_EFFECT_0 = 0xD,
+        TEXTURE_SRC_CODE_POST_EFFECT_1 = 0xE,
+        TEXTURE_SRC_CODE_LIGHT_ATTENUATION = 0xF,
+        TEXTURE_SRC_CODE_DLIGHT_ATTENUATION = 0x10,
+        TEXTURE_SRC_CODE_OUTDOOR = 0x11,
+        TEXTURE_SRC_CODE_FLOATZ = 0x12,
+        TEXTURE_SRC_CODE_PROCESSED_FLOATZ = 0x13,
+        TEXTURE_SRC_CODE_RAW_FLOATZ = 0x14,
+        TEXTURE_SRC_CODE_STENCIL = 0x15,
+        TEXTURE_SRC_CODE_CINEMATIC_Y = 0x16,
+        TEXTURE_SRC_CODE_CINEMATIC_CR = 0x17,
+        TEXTURE_SRC_CODE_CINEMATIC_CB = 0x18,
+        TEXTURE_SRC_CODE_CINEMATIC_A = 0x19,
+        TEXTURE_SRC_CODE_REFLECTION_PROBE = 0x1A,
+        TEXTURE_SRC_CODE_FEATHER_FLOAT_Z = 0x1B,
+        TEXTURE_SRC_CODE_TEXTURE_0 = 0x1C,
+        TEXTURE_SRC_CODE_TEXTURE_1 = 0x1D,
+        TEXTURE_SRC_CODE_TEXTURE_2 = 0x1E,
+        TEXTURE_SRC_CODE_TEXTURE_3 = 0x1F,
+        TEXTURE_SRC_CODE_IMPACT_MASK_DEPRECATED = 0x20,
+        TEXTURE_SRC_CODE_UI3D = 0x21,
+        TEXTURE_SRC_CODE_MISSILE_CAM = 0x22,
+        TEXTURE_SRC_CODE_MISSILE_CAM_0 = 0x23,
+        TEXTURE_SRC_CODE_MISSILE_CAM_1 = 0x24,
+        TEXTURE_SRC_CODE_MISSILE_CAM_2 = 0x25,
+        TEXTURE_SRC_CODE_MISSILE_CAM_3 = 0x26,
+        TEXTURE_SRC_CODE_COMPOSITE_RESULT = 0x27,
+        TEXTURE_SRC_CODE_HEATMAP = 0x28,
+        TEXTURE_SRC_CODE_SONAR_COLOR = 0x29,
+        TEXTURE_SRC_CODE_SONAR_DEPTH = 0x2A,
+        TEXTURE_SRC_CODE_QRCODE_0 = 0x2B,
+        TEXTURE_SRC_CODE_QRCODE_1 = 0x2C,
+        TEXTURE_SRC_CODE_QRCODE_2 = 0x2D,
+        TEXTURE_SRC_CODE_QRCODE_3 = 0x2E,
+        TEXTURE_SRC_CODE_QRCODE_4 = 0x2F,
+        TEXTURE_SRC_CODE_QRCODE_5 = 0x30,
+        TEXTURE_SRC_CODE_QRCODE_6 = 0x31,
+        TEXTURE_SRC_CODE_QRCODE_7 = 0x32,
+        TEXTURE_SRC_CODE_QRCODE_8 = 0x33,
+        TEXTURE_SRC_CODE_QRCODE_9 = 0x34,
+        TEXTURE_SRC_CODE_QRCODE_10 = 0x35,
+        TEXTURE_SRC_CODE_QRCODE_11 = 0x36,
+
+        TEXTURE_SRC_CODE_COUNT
+    };
+
     struct CodeConstantSource
     {
         const char* name;
@@ -6169,8 +6261,8 @@ namespace T6
     struct MaterialArgumentCodeConst
     {
         uint16_t index;
-        char firstRow;
-        char rowCount;
+        unsigned char firstRow;
+        unsigned char rowCount;
     };
 
     union MaterialArgumentDef
@@ -6181,24 +6273,29 @@ namespace T6
         unsigned int nameHash;
     };
 
-    enum MaterialShaderArgumentType
+    enum MaterialShaderArgumentType : uint16_t
     {
         MTL_ARG_MATERIAL_VERTEX_CONST = 0x0,
         MTL_ARG_LITERAL_VERTEX_CONST = 0x1,
         MTL_ARG_MATERIAL_PIXEL_SAMPLER = 0x2,
+
         MTL_ARG_CODE_PRIM_BEGIN = 0x3,
+
         MTL_ARG_CODE_VERTEX_CONST = 0x3,
         MTL_ARG_CODE_PIXEL_SAMPLER = 0x4,
         MTL_ARG_CODE_PIXEL_CONST = 0x5,
+
         MTL_ARG_CODE_PRIM_END = 0x6,
+
         MTL_ARG_MATERIAL_PIXEL_CONST = 0x6,
         MTL_ARG_LITERAL_PIXEL_CONST = 0x7,
-        MLT_ARG_COUNT = 0x8,
+
+        MTL_ARG_COUNT,
     };
 
     struct MaterialShaderArgument
     {
-        uint16_t type;
+        MaterialShaderArgumentType type;
         MaterialArgumentLocation location;
         uint16_t size;
         uint16_t buffer;
@@ -6652,7 +6749,7 @@ namespace T6
         int animDuration;
     };
 
-    struct flameTable
+    struct FlameTable
     {
         float flameVar_streamChunkGravityStart;
         float flameVar_streamChunkGravityEnd;
@@ -6903,10 +7000,6 @@ namespace T6
         vec3_t offset;
         vec3_t halfLengths;
     };
-
-    /* struct __cppobj ID3D11InputLayout : ID3D11DeviceChild
-    {
-    };*/
 
     struct GfxLightRegionAxis
     {

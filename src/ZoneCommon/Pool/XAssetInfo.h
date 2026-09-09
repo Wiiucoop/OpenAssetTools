@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Zone/Zone.h"
 #include "Zone/ZoneTypes.h"
 
@@ -55,6 +56,7 @@ public:
     XAssetInfoGeneric& operator=(XAssetInfoGeneric&& other) noexcept = default;
 
     [[nodiscard]] bool IsReference() const;
+    [[nodiscard]] std::string ReferencedAssetName() const;
 
     static std::string NormalizeAssetName(std::string input);
 

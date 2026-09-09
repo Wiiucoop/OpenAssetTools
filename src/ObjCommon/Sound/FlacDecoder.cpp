@@ -1,9 +1,9 @@
 #include "FlacDecoder.h"
 
 #include "Utils/Alignment.h"
-#include "Utils/ClassUtils.h"
 #include "Utils/Endianness.h"
 #include "Utils/FileUtils.h"
+#include "Utils/Logging/Log.h"
 
 #include <cassert>
 #include <iostream>
@@ -11,7 +11,7 @@
 
 namespace
 {
-    constexpr auto FLAC_MAGIC = FileUtils::MakeMagic32('f', 'L', 'a', 'C');
+    constexpr auto FLAC_MAGIC = utils::MakeMagic32('f', 'L', 'a', 'C');
 
     enum class MetaDataBlockType : unsigned
     {
@@ -41,7 +41,7 @@ namespace
         {
         }
 
-        _NODISCARD char const* what() const noexcept override
+        [[nodiscard]] char const* what() const noexcept override
         {
             return m_message.c_str();
         }
@@ -232,7 +232,7 @@ namespace flac
         }
         catch (const FlacReadingException& e)
         {
-            std::cerr << e.what() << "\n";
+            con::error(e.what());
         }
 
         return false;

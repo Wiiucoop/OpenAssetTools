@@ -98,11 +98,17 @@ bool XAssetInfoGeneric::IsReference() const
     return !m_name.empty() && m_name[0] == ',';
 }
 
+std::string XAssetInfoGeneric::ReferencedAssetName() const
+{
+    return m_name.substr(1);
+}
+
 std::string XAssetInfoGeneric::NormalizeAssetName(std::string input)
 {
     utils::MakeStringLowerCase(input);
 
     std::ranges::replace(input, '\\', '/');
+    utils::StringTrim(input);
 
     return input;
 }

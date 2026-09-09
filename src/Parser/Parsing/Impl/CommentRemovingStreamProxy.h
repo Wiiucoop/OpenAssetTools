@@ -7,6 +7,8 @@ class CommentRemovingStreamProxy final : public IParserLineStream
     IParserLineStream* const m_stream;
     bool m_inside_multi_line_comment;
     bool m_next_line_is_comment;
+    ParserLine m_multi_line_comment_start_line;
+    size_t m_multi_line_comment_pos_in_start_line;
 
 public:
     explicit CommentRemovingStreamProxy(IParserLineStream* stream);
@@ -14,6 +16,6 @@ public:
     ParserLine NextLine() override;
     bool IncludeFile(const std::string& filename) override;
     void PopCurrentFile() override;
-    _NODISCARD bool IsOpen() const override;
-    _NODISCARD bool Eof() const override;
+    [[nodiscard]] bool IsOpen() const override;
+    [[nodiscard]] bool Eof() const override;
 };

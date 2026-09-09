@@ -1,4 +1,4 @@
-require("premake", ">=5.0.0-beta5")
+require("premake", ">=5.0.0-beta8")
 
 include "tools/scripts/folders.lua"
 include "tools/scripts/including.lua"
@@ -18,10 +18,7 @@ workspace "OpenAssetTools"
     systemversion "latest"
     cppdialect "C++23"
     largeaddressaware "on"
-
-	flags {
-		"MultiProcessorCompile"
-	}
+    multiprocessorcompile "on"
 
     configurations { 
         "Debug",
@@ -34,9 +31,11 @@ workspace "OpenAssetTools"
     }
     defaultplatform "x86"
 
-    disablewarnings {
-        "26812" -- Prefer enum class over unscoped
-    }
+    filter "toolset:msc"
+        disablewarnings {
+            "26812" -- Prefer enum class over unscoped
+        }
+    filter {}
 
     filter "platforms:x86"
         architecture "x86"
@@ -95,29 +94,38 @@ include "thirdparty/catch2.lua"
 include "thirdparty/eigen.lua"
 include "thirdparty/libtomcrypt.lua"
 include "thirdparty/libtommath.lua"
+include "thirdparty/lz4.lua"
+include "thirdparty/lzx.lua"
 include "thirdparty/json.lua"
 include "thirdparty/gsc-tool.lua"
 include "thirdparty/minilzo.lua"
 include "thirdparty/minizip.lua"
 include "thirdparty/salsa20.lua"
+include "thirdparty/stb.lua"
+include "thirdparty/webwindowed.lua"
 include "thirdparty/zlib.lua"
-include "thirdparty/lz4.lua"
 include "thirdparty/ufbx.lua"
 
 -- ThirdParty group: All projects that are external dependencies
 group "ThirdParty"
     catch2:project()
     eigen:project()
-    libtommath:project()
     libtomcrypt:project()
+    libtommath:project()
+    lz4:project()
+    lzx:project()
     json:project()
     minilzo:project()
     minizip:project()
     salsa20:project()
+    stb:project()
     zlib:project()
-    lz4:project()
     gsctool:project()
     ufbx:project()
+
+    if _OPTIONS["modman"] then
+        webwindowed:project()
+    end
 group ""
 
 -- ========================
@@ -126,11 +134,15 @@ group ""
 include "src/Common.lua"
 include "src/Cryptography.lua"
 include "src/ImageConverter.lua"
-include "src/Linker.lua"
+include "src/LinkerCli.lua"
+include "src/Linking.lua"
+include "src/ModMan.lua"
 include "src/Parser.lua"
 include "src/RawTemplater.lua"
-include "src/Unlinker.lua"
+include "src/UnlinkerCli.lua"
+include "src/Unlinking.lua"
 include "src/Utils.lua"
+include "src/XMemCompress.lua"
 include "src/ZoneCode.lua"
 include "src/ZoneCodeGeneratorLib.lua"
 include "src/ZoneCodeGenerator.lua"
@@ -151,6 +163,7 @@ group "Components"
     Cryptography:project()
     Parser:project()
     Utils:project()
+    XMemCompress:project()
     ZoneCode:project()
     ZoneCodeGeneratorLib:project()
     ZoneCommon:project()
@@ -161,6 +174,8 @@ group "Components"
     ObjImage:project()
     ObjLoading:project()
     ObjWriting:project()
+    Linking:project()
+    Unlinking:project()
 group ""
 
 -- Tools group: All projects that compile into the final tools
@@ -171,9 +186,13 @@ group ""
 
 -- Tools group: All projects that compile into the final tools
 group "Tools"
-    Linker:project()
-    Unlinker:project()
+    LinkerCli:project()
+    UnlinkerCli:project()
     ImageConverter:project()
+
+    if _OPTIONS["modman"] then
+        ModMan:project()
+    end
 group ""
 
 group "Raw"
@@ -184,6 +203,7 @@ group ""
 -- Tests
 -- ========================
 include "test/Catch2Common.lua"
+include "test/CommonTests.lua"
 include "test/ObjCommonTestUtils.lua"
 include "test/ObjCommonTests.lua"
 include "test/ObjCompilingTests.lua"
@@ -191,12 +211,15 @@ include "test/ObjLoadingTests.lua"
 include "test/ObjWritingTests.lua"
 include "test/ParserTestUtils.lua"
 include "test/ParserTests.lua"
+include "test/SystemTests.lua"
+include "test/UnlinkingTests.lua"
 include "test/ZoneCodeGeneratorLibTests.lua"
 include "test/ZoneCommonTests.lua"
 
 -- Tests group: Unit test and other tests projects
 group "Tests"
     Catch2Common:project()
+    CommonTests:project()
     ObjCommonTestUtils:project()
     ObjCommonTests:project()
     ObjCompilingTests:project()
@@ -204,6 +227,8 @@ group "Tests"
     ObjWritingTests:project()
     ParserTestUtils:project()
     ParserTests:project()
+    SystemTests:project()
+    UnlinkingTests:project()
     ZoneCodeGeneratorLibTests:project()
     ZoneCommonTests:project()
 group ""

@@ -9,61 +9,73 @@ jobs:
   build-release-linux:
     runs-on: ubuntu-latest
     container: ubuntu:24.04
+    defaults:
+      run:
+        shell: bash
     steps:
-      - name: Install g++ and multilib
+      - name: Enable i386 architecture
+        run: dpkg --add-architecture i386
+
+      - name: Install base packages
         run: |
           apt-get update
-          apt-get install -y wget tar git make gcc-13 g++-13 gcc-13-multilib g++-13-multilib
-          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 13
-          update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 13
-          update-alternatives --set gcc /usr/bin/gcc-13
-          update-alternatives --set g++ /usr/bin/g++-13
+          apt-get install -y wget tar git make curl
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
         with:
           submodules: recursive
+
+      - name: Configure gcc
+        uses: ./.github/actions/configure-gcc
+        with:
+          gcc_version: 14
+          enable_x86: "true"
 
       - name: Premake generate
         working-directory: ${{ github.workspace }}
         env:
           PREMAKE_NO_PROMPT: 1
-        run: ./generate.sh
+        run: ./generate.sh --cc=gcc --oat-version=${{ github.ref_name }}
 
       - name: Build
         working-directory: ${{ github.workspace }}
-        run: make -C build -j$(nproc) config=release_x86 all
+        run: |
+          export PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig:$PKG_CONFIG_PATH
+          echo "Package config path: $PKG_CONFIG_PATH"
+          scripts/build.sh release x86
+          chmod +x build/bin/Release_x86/{ImageConverter,Unlinker,Linker}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: oat-linux
           path: |
             ${{ github.workspace }}/build/bin/Release_x86
 
   build-release-windows:
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
         with:
           submodules: recursive
 
       - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v2.0.0
+        uses: microsoft/setup-msbuild@v3.0.0
 
       - name: Premake generate
         working-directory: ${{ github.workspace }}
         env:
           PREMAKE_NO_PROMPT: 1
-        run: ./generate.bat
+        run: ./generate.bat --oat-version=${{ github.ref_name }}
 
       - name: Build
         working-directory: ${{ github.workspace }}
         run: msbuild /m /p:Configuration=Release /p:Platform=Win32 build
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: oat-windows
           path: |
@@ -78,7 +90,7 @@ jobs:
       actions: read
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
       - name: Zip artifacts
         run: |
           7z a oat-linux.tar ./oat-linux/*

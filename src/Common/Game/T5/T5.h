@@ -11,6 +11,67 @@
 
 namespace T5
 {
+    enum XAssetType
+    {
+        ASSET_TYPE_XMODELPIECES,
+        ASSET_TYPE_PHYSPRESET,
+        ASSET_TYPE_PHYSCONSTRAINTS,
+        ASSET_TYPE_DESTRUCTIBLEDEF,
+        ASSET_TYPE_XANIMPARTS,
+        ASSET_TYPE_XMODEL,
+        ASSET_TYPE_MATERIAL,
+        ASSET_TYPE_TECHNIQUE_SET,
+        ASSET_TYPE_IMAGE,
+        ASSET_TYPE_SOUND,
+        ASSET_TYPE_SOUND_PATCH,
+        ASSET_TYPE_CLIPMAP,
+        ASSET_TYPE_CLIPMAP_PVS,
+        ASSET_TYPE_COMWORLD,
+        ASSET_TYPE_GAMEWORLD_SP,
+        ASSET_TYPE_GAMEWORLD_MP,
+        ASSET_TYPE_MAP_ENTS,
+        ASSET_TYPE_GFXWORLD,
+        ASSET_TYPE_LIGHT_DEF,
+        ASSET_TYPE_UI_MAP,
+        ASSET_TYPE_FONT,
+        ASSET_TYPE_MENULIST,
+        ASSET_TYPE_MENU,
+        ASSET_TYPE_LOCALIZE_ENTRY,
+        ASSET_TYPE_WEAPON,
+        ASSET_TYPE_WEAPONDEF,
+        ASSET_TYPE_WEAPON_VARIANT,
+        ASSET_TYPE_SNDDRIVER_GLOBALS,
+        ASSET_TYPE_FX,
+        ASSET_TYPE_IMPACT_FX,
+        ASSET_TYPE_AITYPE,
+        ASSET_TYPE_MPTYPE,
+        ASSET_TYPE_MPBODY,
+        ASSET_TYPE_MPHEAD,
+        ASSET_TYPE_CHARACTER,
+        ASSET_TYPE_XMODELALIAS,
+        ASSET_TYPE_RAWFILE,
+        ASSET_TYPE_STRINGTABLE,
+        ASSET_TYPE_PACK_INDEX,
+        ASSET_TYPE_XGLOBALS,
+        ASSET_TYPE_DDL,
+        ASSET_TYPE_GLASSES,
+        ASSET_TYPE_EMBLEMSET,
+
+        ASSET_TYPE_COUNT
+    };
+
+    enum SubAssetType
+    {
+        SUB_ASSET_TYPE_TECHNIQUE,
+        SUB_ASSET_TYPE_VERTEX_DECL,
+        SUB_ASSET_TYPE_VERTEX_SHADER,
+        SUB_ASSET_TYPE_PIXEL_SHADER,
+        SUB_ASSET_TYPE_ACCURACY_GRAPH,
+        SUB_ASSET_TYPE_FLAME_TABLE,
+
+        SUB_ASSET_TYPE_COUNT
+    };
+
     struct ScriptStringList
     {
         int count;
@@ -88,6 +149,7 @@ namespace T5
         WFT_HIDETAGS,
         WFT_EXPLOSION_TAG,
         WFT_NOTETRACKSOUNDMAP,
+        WFT_ANIM_NAME,
 
         WFT_NUM_FIELD_TYPES
     };
@@ -113,6 +175,12 @@ namespace T5
         CFT_TYPE = CSPFT_NUM_BASE_FIELD_TYPES,
 
         CFT_NUM_FIELD_TYPES
+    };
+
+    struct AccuracyGraph
+    {
+        vec2_t* graphKnots;
+        int graphKnotCount;
     };
 
     using AssetPhysPreset = Asset<ASSET_TYPE_PHYSPRESET, PhysPreset>;
@@ -148,6 +216,13 @@ namespace T5
     using AssetDDL = Asset<ASSET_TYPE_DDL, ddlRoot_t>;
     using AssetGlasses = Asset<ASSET_TYPE_GLASSES, Glasses>;
     using AssetEmblemSet = Asset<ASSET_TYPE_EMBLEMSET, EmblemSet>;
+
+    using SubAssetTechnique = SubAsset<SUB_ASSET_TYPE_TECHNIQUE, MaterialTechnique>;
+    using SubAssetVertexDecl = SubAsset<SUB_ASSET_TYPE_VERTEX_DECL, MaterialVertexDeclaration>;
+    using SubAssetVertexShader = SubAsset<SUB_ASSET_TYPE_VERTEX_SHADER, MaterialVertexShader>;
+    using SubAssetPixelShader = SubAsset<SUB_ASSET_TYPE_PIXEL_SHADER, MaterialPixelShader>;
+    using SubAssetAccuracyGraph = SubAsset<SUB_ASSET_TYPE_ACCURACY_GRAPH, AccuracyGraph>;
+    using SubAssetFlameTable = SubAsset<SUB_ASSET_TYPE_FLAME_TABLE, FlameTable>;
 } // namespace T5
 
 DEFINE_ASSET_NAME_ACCESSOR(T5::AssetPhysPreset, name);

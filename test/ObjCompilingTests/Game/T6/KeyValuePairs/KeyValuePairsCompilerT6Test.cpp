@@ -1,7 +1,6 @@
 #include "Game/T6/KeyValuePairs/KeyValuePairsCompilerT6.h"
 
 #include "Game/T6/CommonT6.h"
-#include "Game/T6/GameAssetPoolT6.h"
 #include "KeyValuePairs/KeyValuePairsCreator.h"
 #include "Utils/TestMemoryManager.h"
 
@@ -20,19 +19,19 @@ namespace
     public:
         TestContext()
             : m_memory(),
-              m_zone("test", 0, IGame::GetGameById(GameId::T6)),
+              m_zone("test", 0, GameId::T6, GamePlatform::PC),
               m_zone_definition(),
               m_zone_states(m_zone),
               m_creators(m_zone),
               m_ignored_assets(),
               m_context(m_zone, &m_creators, &m_ignored_assets),
-              m_kvp_creator(m_zone_states.GetZoneAssetCreationState<KeyValuePairsCreator>())
+              m_kvp_creator(m_zone_states.GetZoneAssetCreationState<key_value_pairs::Creator>())
         {
         }
 
         std::unique_ptr<IAssetCreator> CreateSut()
         {
-            return CreateKeyValuePairsCompiler(m_memory, m_zone, m_zone_definition, m_zone_states);
+            return key_value_pairs::CreateCompilerT6(m_memory, m_zone, m_zone_definition, m_zone_states);
         }
 
         TestMemoryManager m_memory;
@@ -43,7 +42,7 @@ namespace
         IgnoredAssetLookup m_ignored_assets;
         AssetCreationContext m_context;
 
-        KeyValuePairsCreator& m_kvp_creator;
+        key_value_pairs::Creator& m_kvp_creator;
     };
 } // namespace
 
@@ -73,7 +72,7 @@ namespace test::game::t6::keyvaluepairs
         sut->FinalizeZone(testContext.m_context);
 
         REQUIRE(testContext.m_memory.GetAllocationCount() == 0u);
-        REQUIRE(testContext.m_zone.m_pools->GetTotalAssetCount() == 0u);
+        REQUIRE(testContext.m_zone.m_pools.GetTotalAssetCount() == 0u);
     }
 
     TEST_CASE("KeyValuePairsCompilerT6: Creates KeyValuePairs asset with identical name to the zone", "[keyvaluepairs][t6]")
@@ -81,14 +80,14 @@ namespace test::game::t6::keyvaluepairs
         TestContext testContext;
         const auto sut = testContext.CreateSut();
 
-        testContext.m_kvp_creator.AddKeyValuePair(CommonKeyValuePair("ipak_read", "test_ipak"));
+        testContext.m_kvp_creator.AddKeyValuePair(key_value_pairs::CommonKeyValuePair("ipak_read", "test_ipak"));
 
         sut->FinalizeZone(testContext.m_context);
 
         REQUIRE(testContext.m_memory.GetAllocationCount() > 0u);
-        REQUIRE(testContext.m_zone.m_pools->GetTotalAssetCount() == 1u);
+        REQUIRE(testContext.m_zone.m_pools.GetTotalAssetCount() == 1u);
 
-        XAssetInfo<KeyValuePairs>* assetInfo = *dynamic_cast<GameAssetPoolT6*>(testContext.m_zone.m_pools.get())->m_key_value_pairs->begin();
+        XAssetInfo<KeyValuePairs>* assetInfo = *testContext.m_zone.m_pools.PoolAssets<AssetKeyValuePairs>().begin();
         REQUIRE(assetInfo);
         REQUIRE(assetInfo->m_name == "test");
 
@@ -107,14 +106,14 @@ namespace test::game::t6::keyvaluepairs
         TestContext testContext;
         const auto sut = testContext.CreateSut();
 
-        testContext.m_kvp_creator.AddKeyValuePair(CommonKeyValuePair(0xDDEEFFAA, "hello_there"));
+        testContext.m_kvp_creator.AddKeyValuePair(key_value_pairs::CommonKeyValuePair(0xDDEEFFAA, "hello_there"));
 
         sut->FinalizeZone(testContext.m_context);
 
         REQUIRE(testContext.m_memory.GetAllocationCount() > 0u);
-        REQUIRE(testContext.m_zone.m_pools->GetTotalAssetCount() == 1u);
+        REQUIRE(testContext.m_zone.m_pools.GetTotalAssetCount() == 1u);
 
-        XAssetInfo<KeyValuePairs>* assetInfo = *dynamic_cast<GameAssetPoolT6*>(testContext.m_zone.m_pools.get())->m_key_value_pairs->begin();
+        XAssetInfo<KeyValuePairs>* assetInfo = *testContext.m_zone.m_pools.PoolAssets<AssetKeyValuePairs>().begin();
         REQUIRE(assetInfo);
         REQUIRE(assetInfo->m_name == "test");
 

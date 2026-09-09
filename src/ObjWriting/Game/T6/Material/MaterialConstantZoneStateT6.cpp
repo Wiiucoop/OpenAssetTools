@@ -1,11 +1,11 @@
 #include "MaterialConstantZoneStateT6.h"
 
 #include "Game/T6/CommonT6.h"
-#include "Game/T6/GameAssetPoolT6.h"
 #include "Game/T6/GameT6.h"
 #include "ObjWriting.h"
+#include "Zone/ZoneRegistry.h"
 
-namespace T6
+namespace
 {
     const char* KNOWN_CONSTANT_NAMES[]{
         "AngularVelocityScale",
@@ -409,6 +409,7 @@ namespace T6
         "colorMap",
         "colorMap1",
         "colorMap2",
+        "colorMap3",
         "colorMap2D",
         "colorMapPostSun",
         "colorMapPostSunSampler",
@@ -470,16 +471,15 @@ namespace T6
         "ui3d",
         "ui3dSampler",
     };
+} // namespace
 
+namespace T6
+{
     void MaterialConstantZoneState::ExtractNamesFromZoneInternal()
     {
-        for (const auto* zone : IGame::GetGameById(GameId::T6)->GetZones())
+        for (const auto* zone : ZoneRegistry::GetRegistryForGame(GameId::T6)->Zones())
         {
-            const auto* t6AssetPools = dynamic_cast<const GameAssetPoolT6*>(zone->m_pools.get());
-            if (!t6AssetPools)
-                return;
-
-            for (const auto* techniqueSetInfo : *t6AssetPools->m_technique_set)
+            for (const auto* techniqueSetInfo : zone->m_pools.PoolAssets<AssetTechniqueSet>())
             {
                 const auto* techniqueSet = techniqueSetInfo->Asset();
 
@@ -492,7 +492,7 @@ namespace T6
         }
     }
 
-    unsigned MaterialConstantZoneState::HashString(const std::string& str)
+    unsigned MaterialConstantZoneState::HashString(const std::string& str) const
     {
         return Common::R_HashString(str.c_str());
     }

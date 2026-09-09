@@ -4,7 +4,7 @@
 #include "Asset/AssetRegistration.h"
 #include "InfoString/InfoString.h"
 #include "Pool/XAssetInfo.h"
-#include "Utils/ClassUtils.h"
+#include "Utils/Logging/Log.h"
 #include "Utils/MemoryManager.h"
 #include "Zone/ZoneScriptStrings.h"
 
@@ -51,7 +51,7 @@ protected:
 
             if (c == '\n' && currentEntryOffset != ARRAY_SIZE)
             {
-                std::cerr << "Expected value but got new line\n";
+                con::error("Expected value but got new line");
                 return false;
             }
 
@@ -89,7 +89,7 @@ protected:
             const auto isLastEntry = currentEntryOffset >= (ARRAY_SIZE - 1);
             if (isNextEntrySeparator != isLastEntry)
             {
-                std::cerr << std::format("Expected {} values but got new line\n", ARRAY_SIZE);
+                con::error("Expected {} values but got new line", ARRAY_SIZE);
                 return false;
             }
 
@@ -104,7 +104,7 @@ protected:
 
         if (currentEntryOffset > 0)
         {
-            std::cerr << std::format("Expected {} values but got new line\n", ARRAY_SIZE);
+            con::error("Expected {} values but got new line", ARRAY_SIZE);
             return false;
         }
 

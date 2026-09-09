@@ -6,6 +6,7 @@
 #include "Persistence/IDataRepository.h"
 #include "Persistence/InMemory/InMemoryRepository.h"
 #include "Printing/PrettyPrinter.h"
+#include "Utils/Logging/Log.h"
 #include "ZoneCodeGeneratorArguments.h"
 
 #include <cstdio>
@@ -23,6 +24,8 @@ public:
 
     int Run(const int argc, const char** argv) override
     {
+        con::init();
+
         auto shouldContinue = true;
         if (!m_args.ParseArgs(argc, argv, shouldContinue))
             return 1;
@@ -46,7 +49,7 @@ public:
     }
 
 private:
-    bool ReadHeaderData()
+    [[nodiscard]] bool ReadHeaderData() const
     {
         for (const auto& headerFile : m_args.m_header_paths)
         {
@@ -59,7 +62,7 @@ private:
         return true;
     }
 
-    bool ReadCommandsData()
+    [[nodiscard]] bool ReadCommandsData() const
     {
         for (const auto& commandsFile : m_args.m_command_paths)
         {
@@ -78,7 +81,7 @@ private:
         prettyPrinter.PrintAll();
     }
 
-    _NODISCARD bool GenerateCode() const
+    [[nodiscard]] bool GenerateCode() const
     {
         CodeGenerator codeGenerator(&m_args);
         return codeGenerator.GenerateCode(m_repository.get());

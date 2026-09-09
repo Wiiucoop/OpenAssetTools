@@ -1,58 +1,57 @@
 #include "ObjWriterIW3.h"
 
-#include "AssetDumpers/AssetDumperGfxImage.h"
-#include "AssetDumpers/AssetDumperLoadedSound.h"
-#include "AssetDumpers/AssetDumperLocalizeEntry.h"
-#include "AssetDumpers/AssetDumperMapEnts.h"
-#include "AssetDumpers/AssetDumperMaterial.h"
-#include "AssetDumpers/AssetDumperRawFile.h"
-#include "AssetDumpers/AssetDumperStringTable.h"
-#include "AssetDumpers/AssetDumperWeapon.h"
-#include "AssetDumpers/AssetDumperXModel.h"
-#include "Game/IW3/GameAssetPoolIW3.h"
-#include "ObjWriting.h"
+#include "Game/IW3/Font/FontDumperIW3.h"
+#include "Game/IW3/Image/ImageDumperIW3.h"
+#include "Game/IW3/Maps/MapEntsDumperIW3.h"
+#include "Game/IW3/Material/MaterialJsonDumperIW3.h"
+#include "Game/IW3/Techset/TechsetDumperIW3.h"
+#include "Game/IW3/XAnim/XAnimDumperIW3.h"
+#include "Game/IW3/XModel/XModelDumperIW3.h"
+#include "LightDef/LightDefDumperIW3.h"
+#include "Localize/LocalizeDumperIW3.h"
+#include "Menu/MenuDumperIW3.h"
+#include "Menu/MenuListDumperIW3.h"
+#include "PhysPreset/PhysPresetInfoStringDumperIW3.h"
+#include "RawFile/RawFileDumperIW3.h"
+#include "Sound/LoadedSoundDumperIW3.h"
+#include "Sound/SndCurveDumperIW3.h"
+#include "StringTable/StringTableDumperIW3.h"
+#include "Weapon/WeaponDumperIW3.h"
 
 using namespace IW3;
 
-bool ObjWriter::DumpZone(AssetDumpingContext& context) const
+void ObjWriter::RegisterAssetDumpers(AssetDumpingContext& context)
 {
-#define DUMP_ASSET_POOL(dumperType, poolName, assetType)                                                                                                       \
-    if (assetPools->poolName && ObjWriting::ShouldHandleAssetType(assetType))                                                                                  \
-    {                                                                                                                                                          \
-        dumperType dumper;                                                                                                                                     \
-        dumper.DumpPool(context, assetPools->poolName.get());                                                                                                  \
-    }
-
-    const auto* assetPools = dynamic_cast<GameAssetPoolIW3*>(context.m_zone.m_pools.get());
-
-    // DUMP_ASSET_POOL(AssetDumperPhysPreset, m_phys_preset, ASSET_TYPE_PHYSPRESET)
-    // DUMP_ASSET_POOL(AssetDumperXAnimParts, m_xanim_parts, ASSET_TYPE_XANIMPARTS)
-    DUMP_ASSET_POOL(AssetDumperXModel, m_xmodel, ASSET_TYPE_XMODEL)
-    DUMP_ASSET_POOL(AssetDumperMaterial, m_material, ASSET_TYPE_MATERIAL)
-    // DUMP_ASSET_POOL(AssetDumperMaterialTechniqueSet, m_technique_set, ASSET_TYPE_TECHNIQUE_SET)
-    DUMP_ASSET_POOL(AssetDumperGfxImage, m_image, ASSET_TYPE_IMAGE)
-    // DUMP_ASSET_POOL(AssetDumpersnd_alias_list_t, m_sound, ASSET_TYPE_SOUND)
-    // DUMP_ASSET_POOL(AssetDumperSndCurve, m_sound_curve, ASSET_TYPE_SOUND_CURVE)
-    DUMP_ASSET_POOL(AssetDumperLoadedSound, m_loaded_sound, ASSET_TYPE_LOADED_SOUND)
-    // DUMP_ASSET_POOL(AssetDumperClipMap, m_clip_map, ASSET_TYPE_CLIPMAP_PVS)
-    // DUMP_ASSET_POOL(AssetDumperComWorld, m_com_world, ASSET_TYPE_COMWORLD)
-    // DUMP_ASSET_POOL(AssetDumperGameWorldSp, m_game_world_sp, ASSET_TYPE_GAMEWORLD_SP)
-    // DUMP_ASSET_POOL(AssetDumperGameWorldMp, m_game_world_mp, ASSET_TYPE_GAMEWORLD_MP)
-    DUMP_ASSET_POOL(AssetDumperMapEnts, m_map_ents, ASSET_TYPE_MAP_ENTS)
-    // DUMP_ASSET_POOL(AssetDumperGfxWorld, m_gfx_world, ASSET_TYPE_GFXWORLD)
-    // DUMP_ASSET_POOL(AssetDumperGfxLightDef, m_gfx_light_def, ASSET_TYPE_LIGHT_DEF)
-    // DUMP_ASSET_POOL(AssetDumperFont_s, m_font, ASSET_TYPE_FONT)
-    // DUMP_ASSET_POOL(AssetDumperMenuList, m_menu_list, ASSET_TYPE_MENULIST)
-    // DUMP_ASSET_POOL(AssetDumpermenuDef_t, m_menu_def, ASSET_TYPE_MENU)
-    DUMP_ASSET_POOL(AssetDumperLocalizeEntry, m_localize, ASSET_TYPE_LOCALIZE_ENTRY)
-    // DUMP_ASSET_POOL(AssetDumperWeapon, m_weapon, ASSET_TYPE_WEAPON)
-    // DUMP_ASSET_POOL(AssetDumperSndDriverGlobals, m_snd_driver_globals, ASSET_TYPE_SNDDRIVER_GLOBALS)
-    // DUMP_ASSET_POOL(AssetDumperFxEffectDef, m_fx, ASSET_TYPE_FX)
-    // DUMP_ASSET_POOL(AssetDumperFxImpactTable, m_fx_impact_table, ASSET_TYPE_IMPACT_FX)
-    DUMP_ASSET_POOL(AssetDumperRawFile, m_raw_file, ASSET_TYPE_RAWFILE)
-    DUMP_ASSET_POOL(AssetDumperStringTable, m_string_table, ASSET_TYPE_STRINGTABLE)
-
-    return true;
-
-#undef DUMP_ASSET_POOL
+    RegisterAssetDumper(std::make_unique<phys_preset::InfoStringDumperIW3>());
+    RegisterAssetDumper(std::make_unique<xanim::DumperIW3>());
+    RegisterAssetDumper(std::make_unique<xmodel::DumperIW3>());
+    RegisterAssetDumper(std::make_unique<material::JsonDumperIW3>());
+    RegisterAssetDumper(std::make_unique<techset::DumperIW3>(
+#ifdef TECHSET_DEBUG
+        true
+#else
+        false
+#endif
+        ));
+    RegisterAssetDumper(std::make_unique<image::DumperIW3>());
+    // REGISTER_DUMPER(AssetDumpersnd_alias_list_t)
+    RegisterAssetDumper(std::make_unique<sound_curve::DumperIW3>());
+    RegisterAssetDumper(std::make_unique<sound::LoadedSoundDumperIW3>());
+    // REGISTER_DUMPER(AssetDumperClipMap)
+    // REGISTER_DUMPER(AssetDumperComWorld)
+    // REGISTER_DUMPER(AssetDumperGameWorldSp)
+    // REGISTER_DUMPER(AssetDumperGameWorldMp)
+    RegisterAssetDumper(std::make_unique<map_ents::DumperIW3>());
+    // REGISTER_DUMPER(AssetDumperGfxWorld)
+    RegisterAssetDumper(std::make_unique<light_def::DumperIW3>());
+    RegisterAssetDumper(std::make_unique<font::JsonDumperIW3>());
+    RegisterAssetDumper(std::make_unique<menu::MenuListDumperIW3>());
+    RegisterAssetDumper(std::make_unique<menu::MenuDumperIW3>());
+    RegisterAssetDumper(std::make_unique<localize::DumperIW3>());
+    RegisterAssetDumper(std::make_unique<weapon::DumperIW3>());
+    // REGISTER_DUMPER(AssetDumperSndDriverGlobals)
+    // REGISTER_DUMPER(AssetDumperFxEffectDef)
+    // REGISTER_DUMPER(AssetDumperFxImpactTable)
+    RegisterAssetDumper(std::make_unique<raw_file::DumperIW3>());
+    RegisterAssetDumper(std::make_unique<string_table::DumperIW3>());
 }

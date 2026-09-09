@@ -4,6 +4,7 @@
 #include "Game/IW3/GameIW3.h"
 #include "Game/IW3/IW3.h"
 #include "Game/IW3/ZoneConstantsIW3.h"
+#include "Utils/ClassUtils.h"
 #include "Writing/Processor/OutputProcessorDeflate.h"
 #include "Writing/Steps/StepAddOutputProcessor.h"
 #include "Writing/Steps/StepWriteXBlockSizes.h"
@@ -38,7 +39,7 @@ namespace
     ZoneHeader CreateHeaderForParams()
     {
         ZoneHeader header{};
-        header.m_version = ZoneConstants::ZONE_VERSION;
+        header.m_version = ZoneConstants::ZONE_VERSION_PC;
         memcpy(header.m_magic, ZoneConstants::MAGIC_UNSIGNED, sizeof(ZoneHeader::m_magic));
 
         return header;
@@ -52,7 +53,7 @@ std::unique_ptr<ZoneWriter> ZoneWriterFactory::CreateWriter(const Zone& zone) co
     SetupBlocks(*writer);
 
     auto contentInMemory = std::make_unique<StepWriteZoneContentToMemory>(
-        std::make_unique<ContentWriter>(zone), zone, ZoneConstants::OFFSET_BLOCK_BIT_COUNT, ZoneConstants::INSERT_BLOCK);
+        std::make_unique<ContentWriter>(zone), zone, 32u, ZoneConstants::OFFSET_BLOCK_BIT_COUNT, ZoneConstants::INSERT_BLOCK);
     auto* contentInMemoryPtr = contentInMemory.get();
     writer->AddWritingStep(std::move(contentInMemory));
 

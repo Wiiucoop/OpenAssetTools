@@ -1,10 +1,12 @@
 #include "ObjCompilerIW4.h"
 
+#include "Game/IW4/Font/FontCompilerIW4.h"
 #include "Game/IW4/IW4.h"
+#include "Game/IW4/Techset/TechniqueCompilerIW4.h"
+#include "Game/IW4/Techset/TechsetCompilerIW4.h"
+#include "Game/IW4/Techset/VertexDeclCompilerIW4.h"
 #include "Image/ImageIwdPostProcessor.h"
 #include "Material/CompilerMaterialIW4.h"
-#include "Techset/CompilerTechsetIW4.h"
-#include "Techset/CompilerVertexDeclIW4.h"
 
 #include <memory>
 
@@ -17,10 +19,13 @@ namespace
         auto& memory = zone.Memory();
 
 #ifdef EXPERIMENTAL_MATERIAL_COMPILATION
-        collection.AddAssetCreator(CreateMaterialCompiler(memory, searchPath, gdt));
-        collection.AddAssetCreator(CreateTechsetLoader(memory, searchPath));
+        collection.AddAssetCreator(material::CreateCompilerIW4(memory, searchPath, gdt));
 #endif
-        collection.AddAssetCreator(CreateVertexDeclLoader(memory));
+        collection.AddAssetCreator(techset::CreateVertexDeclCompilerIW4(memory));
+        collection.AddAssetCreator(techset::CreateTechsetCompilerIW4(memory, searchPath));
+        collection.AddAssetCreator(font::CreateCompilerIW4(memory, searchPath));
+
+        collection.AddSubAssetCreator(techset::CreateTechniqueCompilerIW4(memory, zone, searchPath));
     }
 
     void ConfigurePostProcessors(AssetCreatorCollection& collection,
@@ -32,8 +37,8 @@ namespace
     {
         auto& memory = zone.Memory();
 
-        if (ImageIwdPostProcessor<AssetImage>::AppliesToZoneDefinition(zoneDefinition))
-            collection.AddAssetPostProcessor(std::make_unique<ImageIwdPostProcessor<AssetImage>>(zoneDefinition, searchPath, zoneStates, outDir));
+        if (image::IwdPostProcessor<AssetImage>::AppliesToZoneDefinition(zoneDefinition))
+            collection.AddAssetPostProcessor(std::make_unique<image::IwdPostProcessor<AssetImage>>(zoneDefinition, searchPath, zoneStates, outDir));
     }
 } // namespace
 

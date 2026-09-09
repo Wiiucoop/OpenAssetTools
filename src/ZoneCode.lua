@@ -110,6 +110,70 @@ ZoneCode.Assets = {
         "AddonMapEnts",
     },
 
+    QOS = {
+        "PhysPreset",
+        "PhysConstraints",
+        "DestructibleDef",
+        "XAnimParts",
+        "XModel",
+        "Material",
+        "MaterialTechniqueSet",
+        "GfxImage",
+        "snd_alias_list_t",
+        "SndCurve",
+        "clipMap_t",
+        "ComWorld",
+        "GameWorldSp",
+        "GameWorldMp",
+        "MapEnts",
+        "GfxWorld",
+        "GfxLightDef",
+        "Font_s",
+        "MenuList",
+        "menuDef_t",
+        "LocalizeEntry",
+        "WeaponDef",
+        "FxEffectDef",
+        "FxImpactTable",
+        "RawFile",
+        "StringTable",
+        "XmlTree",
+        "SceneAnimation",
+        "Cutscene",
+        "CustomCamera",
+    },
+
+    T4 = {
+        "PhysPreset",
+        "PhysConstraints",
+        "DestructibleDef",
+        "XAnimParts",
+        "XModel",
+        "Material",
+        "MaterialTechniqueSet",
+        "GfxImage",
+        "snd_alias_list_t",
+        "SndDriverGlobals",
+        "LoadedSound",
+        "clipMap_t",
+        "ComWorld",
+        "GameWorldSp",
+        "GameWorldMp",
+        "MapEnts",
+        "GfxWorld",
+        "GfxLightDef",
+        "Font_s",
+        "MenuList",
+        "menuDef_t",
+        "LocalizeEntry",
+        "WeaponDef",
+        "FxEffectDef",
+        "FxImpactTable",
+        "RawFile",
+        "StringTable",
+        "PackIndex",
+    },
+
     T5 = {
         "PhysPreset",
         "PhysConstraints",
@@ -197,29 +261,36 @@ ZoneCode.Assets = {
     }
 }
 
-function ZoneCode:outputForAssets(assetList)
-    for i = 1, #assetList do
-        local assetNameLower = string.lower(assetList[i])
-        buildoutputs {
-            "%{wks.location}/src/ZoneCode/Game/%{file.basename}/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_load_db.cpp",
-            "%{wks.location}/src/ZoneCode/Game/%{file.basename}/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_load_db.h",
-            "%{wks.location}/src/ZoneCode/Game/%{file.basename}/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_mark_db.cpp",
-            "%{wks.location}/src/ZoneCode/Game/%{file.basename}/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_mark_db.h",
-            "%{wks.location}/src/ZoneCode/Game/%{file.basename}/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_write_db.cpp",
-            "%{wks.location}/src/ZoneCode/Game/%{file.basename}/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_write_db.h",
-            "%{wks.location}/src/ZoneCode/Game/%{file.basename}/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_struct_test.cpp",
-        }
-    end
-end
-
 function ZoneCode:allTestFiles()
     result = {}
 
     for game, assets in pairs(self.Assets) do
+        local gameLower = string.lower(game)
+
         for i, assetName in ipairs(assets) do
             local assetNameLower = string.lower(assetName)
-            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_struct_test.cpp")
+            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_" .. gameLower .. "_struct_test.cpp")
         end
+    end
+    
+    return result
+end
+
+function ZoneCode:allMarkFiles()
+    result = {}
+
+    for game, assets in pairs(self.Assets) do
+        local gameLower = string.lower(game)
+
+        -- PerAsset
+        for i, assetName in ipairs(assets) do
+            local assetNameLower = string.lower(assetName)
+            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_" .. gameLower .. "_mark_db.cpp")
+            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_" .. gameLower .. "_mark_db.h")
+        end
+        
+        -- PerTemplate
+        table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/AssetMarker" .. game .. ".h")
     end
     
     return result
@@ -229,13 +300,17 @@ function ZoneCode:allLoadFiles()
     result = {}
 
     for game, assets in pairs(self.Assets) do
+        local gameLower = string.lower(game)
+
+        -- PerAsset
         for i, assetName in ipairs(assets) do
             local assetNameLower = string.lower(assetName)
-            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_load_db.cpp")
-            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_load_db.h")
-            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_mark_db.cpp")
-            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_mark_db.h")
+            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_" .. gameLower .. "_load_db.cpp")
+            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_" .. gameLower .. "_load_db.h")
         end
+        
+        -- PerTemplate
+        table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/AssetLoader" .. game .. ".h")
     end
     
     return result
@@ -245,11 +320,17 @@ function ZoneCode:allWriteFiles()
     result = {}
 
     for game, assets in pairs(self.Assets) do
+        local gameLower = string.lower(game)
+
+        -- PerAsset
         for i, assetName in ipairs(assets) do
             local assetNameLower = string.lower(assetName)
-            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_write_db.cpp")
-            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_write_db.h")
+            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_" .. gameLower .. "_write_db.cpp")
+            table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/XAssets/" .. assetNameLower .. "/" .. assetNameLower .. "_" .. gameLower .. "_write_db.h")
         end
+        
+        -- PerTemplate
+        table.insert(result, "%{wks.location}/src/ZoneCode/Game/" .. game .. "/AssetWriter" .. game .. ".h")
     end
     
     return result
@@ -305,13 +386,15 @@ function ZoneCode:project()
             buildmessage "Generating ZoneCode for game %{file.basename}"
             buildcommands {
                 '"' .. TargetDirectoryBuildTools .. '/' .. ExecutableByOs('ZoneCodeGenerator') .. '"' 
+                    .. ' --no-color'
                     .. ' -h "' .. path.join(path.getabsolute(ProjectFolder()), 'ZoneCode/Game/%{file.basename}/%{file.basename}_ZoneCode.h') .. '"'
                     .. ' -c "' .. path.join(path.getabsolute(ProjectFolder()), 'ZoneCode/Game/%{file.basename}/%{file.basename}_Commands.txt') .. '"'
-                    .. ' -o "%{wks.location}/src/ZoneCode/Game/%{file.basename}/XAssets"'
-                    .. ' -g "*" ZoneLoad'
-                    .. ' -g "*" ZoneMark'
-                    .. ' -g "*" ZoneWrite'
-                    .. ' -g "*" AssetStructTests'
+                    .. ' -o "%{wks.location}/src/ZoneCode/Game/%{file.basename}"'
+                    .. ' --build-log "%{wks.location}/src/ZoneCode/Game/%{file.basename}.log"'
+                    .. ' -g ZoneLoad'
+                    .. ' -g ZoneMark'
+                    .. ' -g ZoneWrite'
+                    .. ' -g AssetStructTests'
             }
             buildinputs {
                 path.join(ProjectFolder(), "ZoneCode/Game/%{file.basename}/%{file.basename}_ZoneCode.h"),
@@ -319,25 +402,8 @@ function ZoneCode:project()
                 path.join(ProjectFolder(), "Common/Game/%{file.basename}/%{file.basename}_Assets.h"),
                 TargetDirectoryBuildTools .. "/" .. ExecutableByOs('ZoneCodeGenerator')
             }
-        filter {}
-        
-        filter "files:**/IW3.gen"
-            self:outputForAssets(self.Assets.IW3)
-        filter {}
-        
-        filter "files:**/IW4.gen"
-            self:outputForAssets(self.Assets.IW4)
-        filter {}
-        
-        filter "files:**/IW5.gen"
-            self:outputForAssets(self.Assets.IW5)
-        filter {}
-        
-        filter "files:**/T5.gen"
-            self:outputForAssets(self.Assets.T5)
-        filter {}
-        
-        filter "files:**/T6.gen"
-            self:outputForAssets(self.Assets.T6)
+            buildoutputs {
+                "%{wks.location}/src/ZoneCode/Game/%{file.basename}.log"
+            }
         filter {}
 end

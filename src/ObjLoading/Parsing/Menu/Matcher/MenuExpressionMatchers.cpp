@@ -1,9 +1,13 @@
 #include "MenuExpressionMatchers.h"
 
+#include "Game/IW3/IW3.h"
+#include "Game/IW3/MenuConstantsIW3.h"
 #include "Game/IW4/IW4.h"
 #include "Game/IW4/MenuConstantsIW4.h"
 #include "Game/IW5/IW5.h"
 #include "Game/IW5/MenuConstantsIW5.h"
+#include "Game/T4/MenuConstantsT4.h"
+#include "Game/T4/T4.h"
 #include "MenuMatcherFactory.h"
 #include "Parsing/Menu/Domain/Expression/CommonExpressionBaseFunctionCall.h"
 #include "Parsing/Menu/Domain/Expression/CommonExpressionCustomFunctionCall.h"
@@ -48,11 +52,47 @@ std::unique_ptr<SimpleExpressionMatchers::matcher_t> MenuExpressionMatchers::Par
     });
 }
 
-const std::map<std::string, size_t>& MenuExpressionMatchers::GetBaseFunctionMapForFeatureLevel(const FeatureLevel featureLevel)
+const std::unordered_map<std::string, size_t>& MenuExpressionMatchers::GetBaseFunctionMapForFeatureLevel(const FeatureLevel featureLevel)
 {
+    if (featureLevel == FeatureLevel::IW3)
+    {
+        static std::unordered_map<std::string, size_t> iw3FunctionMap;
+        static bool iw3FunctionMapInitialized = false;
+
+        if (!iw3FunctionMapInitialized)
+        {
+            for (size_t i = IW3::OP_FIRSTFUNCTIONCALL; i < std::extent_v<decltype(IW3::g_expFunctionNames)>; i++)
+            {
+                std::string functionName(IW3::g_expFunctionNames[i]);
+                utils::MakeStringLowerCase(functionName);
+                iw3FunctionMap.emplace(std::make_pair(std::move(functionName), i));
+            }
+        }
+
+        return iw3FunctionMap;
+    }
+
+    if (featureLevel == FeatureLevel::T4)
+    {
+        static std::unordered_map<std::string, size_t> t4FunctionMap;
+        static bool t4FunctionMapInitialized = false;
+
+        if (!t4FunctionMapInitialized)
+        {
+            for (size_t i = T4::OP_FIRSTFUNCTIONCALL; i < std::extent_v<decltype(T4::g_expFunctionNames)>; i++)
+            {
+                std::string functionName(T4::g_expFunctionNames[i]);
+                utils::MakeStringLowerCase(functionName);
+                t4FunctionMap.emplace(std::make_pair(std::move(functionName), i));
+            }
+        }
+
+        return t4FunctionMap;
+    }
+
     if (featureLevel == FeatureLevel::IW4)
     {
-        static std::map<std::string, size_t> iw4FunctionMap;
+        static std::unordered_map<std::string, size_t> iw4FunctionMap;
         static bool iw4FunctionMapInitialized = false;
 
         if (!iw4FunctionMapInitialized)
@@ -69,7 +109,7 @@ const std::map<std::string, size_t>& MenuExpressionMatchers::GetBaseFunctionMapF
     }
     if (featureLevel == FeatureLevel::IW5)
     {
-        static std::map<std::string, size_t> iw5FunctionMap;
+        static std::unordered_map<std::string, size_t> iw5FunctionMap;
         static bool iw5FunctionMapInitialized = false;
 
         if (!iw5FunctionMapInitialized)

@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <format>
+#include <numbers>
 
 using namespace gltf;
 using namespace nlohmann;
@@ -24,6 +25,71 @@ namespace
         float normal[3];
         float uv[2];
     };
+
+    struct GltfVertexColorData
+    {
+        float color[4];
+    };
+
+    void LhcToRhcCoordinates(float (&coords)[3])
+    {
+        const float two[3]{coords[0], coords[1], coords[2]};
+
+        coords[0] = two[0];
+        coords[1] = two[2];
+        coords[2] = -two[1];
+    }
+
+    void LhcToRhcQuaternion(float (&quat)[4])
+    {
+        Eigen::Quaternionf eigenQuat(quat[3], quat[0], quat[1], quat[2]);
+        const Eigen::Quaternionf eigenRotationQuat(Eigen::AngleAxisf(-std::numbers::pi_v<float> / 2.f, Eigen::Vector3f::UnitX()));
+
+        eigenQuat = eigenRotationQuat * eigenQuat;
+
+        quat[0] = eigenQuat.x();
+        quat[1] = eigenQuat.y();
+        quat[2] = eigenQuat.z();
+        quat[3] = eigenQuat.w();
+    }
+
+    void LhcToRhcIndices(unsigned short* indices)
+    {
+        const unsigned short two[3]{indices[0], indices[1], indices[2]};
+
+        indices[0] = two[2];
+        indices[1] = two[1];
+        indices[2] = two[0];
+    }
+
+    void LhcToRhcMatrix(Eigen::Matrix4f& matrix)
+    {
+        const Eigen::Matrix4f convertMatrix({
+            {1.0, 0.0,  0.0, 0.0},
+            {0.0, 0.0,  1.0, 0.0},
+            {0.0, -1.0, 0.0, 0.0},
+            {0.0, 0.0,  0.0, 1.0}
+        });
+
+        const auto result = convertMatrix * matrix;
+        matrix = result;
+    }
+
+    [[nodiscard]] bool HasNonDefaultColorData(const XModelCommon& xmodel)
+    {
+        for (const auto& vertex : xmodel.m_vertices)
+        {
+            if (std::abs(vertex.color[0] - 1.0f) >= std::numeric_limits<float>::epsilon()
+                || std::abs(vertex.color[1] - 1.0f) >= std::numeric_limits<float>::epsilon()
+                || std::abs(vertex.color[2] - 1.0f) >= std::numeric_limits<float>::epsilon()
+                || std::abs(vertex.color[3] - 1.0f) >= std::numeric_limits<float>::epsilon())
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     class GltfWriterImpl final : public gltf::Writer
     {
@@ -40,20 +106,22 @@ namespace
             JsonRoot gltf;
             std::vector<uint8_t> bufferData;
 
+            const auto hasNonDefaultColorData = HasNonDefaultColorData(xmodel);
+
             CreateJsonAsset(gltf.asset);
             CreateSkeletonNodes(gltf, xmodel);
             CreateMeshNodes(gltf, xmodel);
             CreateRootNode(gltf, xmodel);
             CreateMaterials(gltf, xmodel);
-            CreateBufferViews(gltf, xmodel);
-            CreateAccessors(gltf, xmodel);
+            CreateBufferViews(gltf, xmodel, hasNonDefaultColorData);
+            CreateAccessors(gltf, xmodel, hasNonDefaultColorData);
             CreateSkin(gltf, xmodel);
-            CreateMeshes(gltf, xmodel);
+            CreateMeshes(gltf, xmodel, hasNonDefaultColorData);
             CreateScene(gltf, xmodel);
-            FillBufferData(gltf, xmodel, bufferData);
+            FillBufferData(gltf, xmodel, bufferData, hasNonDefaultColorData);
             CreateBuffer(gltf, xmodel, bufferData);
 
-            const json jRoot = gltf;
+            const ordered_json jRoot = gltf;
             m_output->EmitJson(jRoot);
 
             if (!bufferData.empty())
@@ -119,16 +187,16 @@ namespace
 
             const auto meshCount = xmodel.m_objects.size();
             for (auto meshIndex = 0u; meshIndex < meshCount; meshIndex++)
-                rootNode.children->push_back(m_first_mesh_node + meshIndex);
+                rootNode.children->emplace_back(m_first_mesh_node + meshIndex);
 
-            if (!xmodel.m_bones.empty())
-                rootNode.children->push_back(m_first_bone_node);
+            for (auto rootBoneIndex = 0u; rootBoneIndex < m_root_bone_count; rootBoneIndex++)
+                rootNode.children->emplace_back(m_first_bone_node + rootBoneIndex);
 
             m_root_node = static_cast<unsigned>(gltf.nodes->size());
             gltf.nodes->emplace_back(std::move(rootNode));
         }
 
-        void CreateMeshes(JsonRoot& gltf, const XModelCommon& xmodel)
+        void CreateMeshes(JsonRoot& gltf, const XModelCommon& xmodel, const bool hasNonDefaultColorData)
         {
             if (!gltf.meshes.has_value())
                 gltf.meshes.emplace();
@@ -145,6 +213,8 @@ namespace
 
                 primitives.attributes.POSITION = m_position_accessor;
                 primitives.attributes.NORMAL = m_normal_accessor;
+                if (hasNonDefaultColorData)
+                    primitives.attributes.COLOR_0 = m_color_accessor;
                 primitives.attributes.TEXCOORD_0 = m_uv_accessor;
 
                 if (hasBoneWeightData)
@@ -233,31 +303,50 @@ namespace
 
             const auto boneCount = common.m_bones.size();
             m_first_bone_node = static_cast<unsigned>(gltf.nodes->size());
+            m_root_bone_count = 0;
             for (auto boneIndex = 0u; boneIndex < boneCount; boneIndex++)
             {
                 JsonNode boneNode;
                 const auto& bone = common.m_bones[boneIndex];
 
-                Eigen::Vector3f translation(bone.globalOffset[0], bone.globalOffset[1], bone.globalOffset[2]);
-                Eigen::Quaternionf rotation(bone.globalRotation.w, bone.globalRotation.x, bone.globalRotation.y, bone.globalRotation.z);
+                float globalTranslationData[3]{bone.globalOffset[0], bone.globalOffset[1], bone.globalOffset[2]};
+                LhcToRhcCoordinates(globalTranslationData);
+                Eigen::Vector3f translation(globalTranslationData[0], globalTranslationData[1], globalTranslationData[2]);
+
+                float globalRotationData[4]{bone.globalRotation.x, bone.globalRotation.y, bone.globalRotation.z, bone.globalRotation.w};
+                LhcToRhcQuaternion(globalRotationData);
+                Eigen::Quaternionf rotation(globalRotationData[3], globalRotationData[0], globalRotationData[1], globalRotationData[2]);
+
                 if (bone.parentIndex)
                 {
                     const auto& parentBone = common.m_bones[*bone.parentIndex];
-                    const auto inverseParentRotation =
-                        Eigen::Quaternionf(parentBone.globalRotation.w, parentBone.globalRotation.x, parentBone.globalRotation.y, parentBone.globalRotation.z)
-                            .normalized()
-                            .inverse()
-                            .normalized();
 
-                    translation -= Eigen::Vector3f(parentBone.globalOffset[0], parentBone.globalOffset[1], parentBone.globalOffset[2]);
+                    float parentGlobalTranslationData[3]{parentBone.globalOffset[0], parentBone.globalOffset[1], parentBone.globalOffset[2]};
+                    LhcToRhcCoordinates(parentGlobalTranslationData);
+                    const Eigen::Vector3f parentTranslation(parentGlobalTranslationData[0], parentGlobalTranslationData[1], parentGlobalTranslationData[2]);
+
+                    float parentGlobalRotationData[4]{
+                        parentBone.globalRotation.x, parentBone.globalRotation.y, parentBone.globalRotation.z, parentBone.globalRotation.w};
+                    LhcToRhcQuaternion(parentGlobalRotationData);
+                    const Eigen::Quaternionf parentRotation(
+                        parentGlobalRotationData[3], parentGlobalRotationData[0], parentGlobalRotationData[1], parentGlobalRotationData[2]);
+                    const auto inverseParentRotation = parentRotation.inverse();
+
+                    translation -= parentTranslation;
                     translation = inverseParentRotation * translation;
                     rotation = inverseParentRotation * rotation;
+                }
+                else
+                {
+                    assert(m_root_bone_count == boneIndex);
+                    m_root_bone_count++;
                 }
                 rotation.normalize();
 
                 boneNode.name = bone.name;
-                boneNode.translation = std::to_array({translation.x(), translation.z(), -translation.y()});
-                boneNode.rotation = std::to_array({rotation.x(), rotation.z(), -rotation.y(), rotation.w()});
+
+                boneNode.translation = std::to_array({translation.x(), translation.y(), translation.z()});
+                boneNode.rotation = std::to_array({rotation.x(), rotation.y(), rotation.z(), rotation.w()});
 
                 std::vector<unsigned> children;
                 for (auto maybeChildIndex = 0u; maybeChildIndex < boneCount; maybeChildIndex++)
@@ -310,7 +399,7 @@ namespace
             gltf.scene = 0u;
         }
 
-        void CreateBufferViews(JsonRoot& gltf, const XModelCommon& xmodel)
+        void CreateBufferViews(JsonRoot& gltf, const XModelCommon& xmodel, const bool hasNonDefaultColorData)
         {
             if (!gltf.bufferViews.has_value())
                 gltf.bufferViews.emplace();
@@ -327,6 +416,19 @@ namespace
 
             m_vertex_buffer_view = static_cast<unsigned>(gltf.bufferViews->size());
             gltf.bufferViews->emplace_back(vertexBufferView);
+
+            if (hasNonDefaultColorData)
+            {
+                JsonBufferView colorBufferView;
+                colorBufferView.buffer = 0u;
+                colorBufferView.byteOffset = bufferOffset;
+                colorBufferView.byteLength = static_cast<unsigned>(sizeof(GltfVertexColorData) * xmodel.m_vertices.size());
+                colorBufferView.target = JsonBufferViewTarget::ARRAY_BUFFER;
+                bufferOffset += colorBufferView.byteLength;
+
+                m_color_buffer_view = static_cast<unsigned>(gltf.bufferViews->size());
+                gltf.bufferViews->emplace_back(colorBufferView);
+            }
 
             if (!xmodel.m_bone_weight_data.weights.empty())
             {
@@ -374,7 +476,7 @@ namespace
             }
         }
 
-        void CreateAccessors(JsonRoot& gltf, const XModelCommon& xmodel)
+        void CreateAccessors(JsonRoot& gltf, const XModelCommon& xmodel, const bool hasNonDefaultColorData)
         {
             if (!gltf.accessors.has_value())
                 gltf.accessors.emplace();
@@ -396,6 +498,17 @@ namespace
             normalAccessor.type = JsonAccessorType::VEC3;
             m_normal_accessor = static_cast<unsigned>(gltf.accessors->size());
             gltf.accessors->emplace_back(normalAccessor);
+
+            if (hasNonDefaultColorData)
+            {
+                JsonAccessor colorAccessor;
+                colorAccessor.bufferView = m_color_buffer_view;
+                colorAccessor.componentType = JsonAccessorComponentType::FLOAT;
+                colorAccessor.count = static_cast<unsigned>(xmodel.m_vertices.size());
+                colorAccessor.type = JsonAccessorType::VEC4;
+                m_color_accessor = static_cast<unsigned>(gltf.accessors->size());
+                gltf.accessors->emplace_back(colorAccessor);
+            }
 
             JsonAccessor uvAccessor;
             uvAccessor.bufferView = m_vertex_buffer_view;
@@ -448,9 +561,9 @@ namespace
             }
         }
 
-        void FillBufferData(JsonRoot& gltf, const XModelCommon& xmodel, std::vector<uint8_t>& bufferData) const
+        void FillBufferData(JsonRoot& gltf, const XModelCommon& xmodel, std::vector<uint8_t>& bufferData, const bool hasNonDefaultColorData) const
         {
-            const auto expectedBufferSize = GetExpectedBufferSize(xmodel);
+            const auto expectedBufferSize = GetExpectedBufferSize(xmodel, hasNonDefaultColorData);
             bufferData.resize(expectedBufferSize);
 
             auto currentBufferOffset = 0uz;
@@ -471,8 +584,9 @@ namespace
                 auto* vertex = reinterpret_cast<GltfVertex*>(&bufferData[currentBufferOffset]);
 
                 vertex->coordinates[0] = commonVertex.coordinates[0];
-                vertex->coordinates[1] = commonVertex.coordinates[2];
-                vertex->coordinates[2] = -commonVertex.coordinates[1];
+                vertex->coordinates[1] = commonVertex.coordinates[1];
+                vertex->coordinates[2] = commonVertex.coordinates[2];
+                LhcToRhcCoordinates(vertex->coordinates);
 
                 minPosition[0] = std::min(minPosition[0], vertex->coordinates[0]);
                 minPosition[1] = std::min(minPosition[1], vertex->coordinates[1]);
@@ -482,8 +596,9 @@ namespace
                 maxPosition[2] = std::max(maxPosition[2], vertex->coordinates[2]);
 
                 vertex->normal[0] = commonVertex.normal[0];
-                vertex->normal[1] = commonVertex.normal[2];
-                vertex->normal[2] = -commonVertex.normal[1];
+                vertex->normal[1] = commonVertex.normal[1];
+                vertex->normal[2] = commonVertex.normal[2];
+                LhcToRhcCoordinates(vertex->normal);
 
                 vertex->uv[0] = commonVertex.uv[0];
                 vertex->uv[1] = commonVertex.uv[1];
@@ -495,6 +610,20 @@ namespace
             {
                 gltf.accessors.value()[m_position_accessor].min = std::vector({minPosition[0], minPosition[1], minPosition[2]});
                 gltf.accessors.value()[m_position_accessor].max = std::vector({maxPosition[0], maxPosition[1], maxPosition[2]});
+            }
+
+            if (hasNonDefaultColorData)
+            {
+                for (const auto& commonVertex : xmodel.m_vertices)
+                {
+                    auto* colorData = reinterpret_cast<GltfVertexColorData*>(&bufferData[currentBufferOffset]);
+                    colorData->color[0] = commonVertex.color[0];
+                    colorData->color[1] = commonVertex.color[1];
+                    colorData->color[2] = commonVertex.color[2];
+                    colorData->color[3] = commonVertex.color[3];
+
+                    currentBufferOffset += sizeof(GltfVertexColorData);
+                }
             }
 
             if (!xmodel.m_bone_weight_data.weights.empty())
@@ -531,11 +660,13 @@ namespace
                 auto* inverseBindMatrixData = reinterpret_cast<float*>(&bufferData[currentBufferOffset]);
                 for (const auto& bone : xmodel.m_bones)
                 {
-                    const auto translation = Eigen::Translation3f(bone.globalOffset[0], bone.globalOffset[2], -bone.globalOffset[1]);
-                    const auto rotation = Eigen::Quaternionf(bone.globalRotation.w, bone.globalRotation.x, bone.globalRotation.z, -bone.globalRotation.y);
+                    const auto translation = Eigen::Translation3f(bone.globalOffset[0], bone.globalOffset[1], bone.globalOffset[2]);
+                    const auto rotation = Eigen::Quaternionf(bone.globalRotation.w, bone.globalRotation.x, bone.globalRotation.y, bone.globalRotation.z);
+                    const auto bindMatrixTransform = translation * rotation;
+                    auto bindMatrix = bindMatrixTransform.matrix();
 
-                    const auto bindMatrix = (translation * rotation);
-                    const auto inverseBindMatrix = bindMatrix.matrix().inverse();
+                    LhcToRhcMatrix(bindMatrix);
+                    const auto inverseBindMatrix = bindMatrix.inverse();
 
                     // GLTF matrix is column major
                     inverseBindMatrixData[0] = inverseBindMatrix(0, 0);
@@ -565,9 +696,10 @@ namespace
                 for (const auto& face : object.m_faces)
                 {
                     auto* faceIndices = reinterpret_cast<unsigned short*>(&bufferData[currentBufferOffset]);
-                    faceIndices[0] = static_cast<unsigned short>(face.vertexIndex[2]);
+                    faceIndices[0] = static_cast<unsigned short>(face.vertexIndex[0]);
                     faceIndices[1] = static_cast<unsigned short>(face.vertexIndex[1]);
-                    faceIndices[2] = static_cast<unsigned short>(face.vertexIndex[0]);
+                    faceIndices[2] = static_cast<unsigned short>(face.vertexIndex[2]);
+                    LhcToRhcIndices(faceIndices);
 
                     currentBufferOffset += sizeof(unsigned short) * 3u;
                 }
@@ -576,11 +708,14 @@ namespace
             assert(expectedBufferSize == currentBufferOffset);
         }
 
-        static size_t GetExpectedBufferSize(const XModelCommon& xmodel)
+        static size_t GetExpectedBufferSize(const XModelCommon& xmodel, const bool hasNonDefaultColorData)
         {
             auto result = 0uz;
 
             result += xmodel.m_vertices.size() * sizeof(GltfVertex);
+
+            if (hasNonDefaultColorData)
+                result += xmodel.m_vertices.size() * sizeof(GltfVertexColorData);
 
             if (!xmodel.m_bone_weight_data.weights.empty())
             {
@@ -616,13 +751,16 @@ namespace
         unsigned m_first_mesh_node = 0u;
         unsigned m_root_node = 0u;
         unsigned m_first_bone_node = 0u;
+        unsigned m_root_bone_count = 0u;
         unsigned m_position_accessor = 0u;
         unsigned m_normal_accessor = 0u;
+        unsigned m_color_accessor = 0u;
         unsigned m_uv_accessor = 0u;
         unsigned m_joints_accessor = 0u;
         unsigned m_weights_accessor = 0u;
         unsigned m_inverse_bind_matrices_accessor = 0u;
         unsigned m_vertex_buffer_view = 0u;
+        unsigned m_color_buffer_view = 0u;
         unsigned m_joints_buffer_view = 0u;
         unsigned m_weights_buffer_view = 0u;
         unsigned m_inverse_bind_matrices_buffer_view = 0u;

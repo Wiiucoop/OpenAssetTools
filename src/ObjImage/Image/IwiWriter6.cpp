@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-using namespace iwi6;
+using namespace image::iwi6;
 
 IwiWriter::IwiWriter() = default;
 
@@ -12,10 +12,10 @@ IwiFormat IwiWriter::GetIwiFormatForImageFormat(const ImageFormat* imageFormat)
 {
     switch (imageFormat->GetId())
     {
-    case ImageFormatId::R8_G8_B8:
+    case ImageFormatId::B8_G8_R8:
         return IwiFormat::IMG_FORMAT_BITMAP_RGB;
 
-    case ImageFormatId::R8_G8_B8_A8:
+    case ImageFormatId::B8_G8_R8_A8:
         return IwiFormat::IMG_FORMAT_BITMAP_RGBA;
 
     case ImageFormatId::A8:
@@ -33,6 +33,12 @@ IwiFormat IwiWriter::GetIwiFormatForImageFormat(const ImageFormat* imageFormat)
     case ImageFormatId::BC5:
         return IwiFormat::IMG_FORMAT_DXN;
 
+    case ImageFormatId::R8_A8:
+        return IwiFormat::IMG_FORMAT_BITMAP_LUMINANCE_ALPHA;
+
+    case ImageFormatId::R8:
+        return IwiFormat::IMG_FORMAT_BITMAP_LUMINANCE;
+
     default:
         return IwiFormat::IMG_FORMAT_INVALID;
     }
@@ -40,13 +46,13 @@ IwiFormat IwiWriter::GetIwiFormatForImageFormat(const ImageFormat* imageFormat)
 
 void IwiWriter::WriteVersion(std::ostream& stream)
 {
-    IwiVersion version{};
+    IwiVersionHeader version{};
     version.tag[0] = 'I';
     version.tag[1] = 'W';
     version.tag[2] = 'i';
     version.version = 6;
 
-    stream.write(reinterpret_cast<char*>(&version), sizeof(IwiVersion));
+    stream.write(reinterpret_cast<char*>(&version), sizeof(IwiVersionHeader));
 }
 
 void IwiWriter::FillHeader2D(IwiHeader& header, const Texture2D& texture)
@@ -96,7 +102,7 @@ void IwiWriter::DumpImage(std::ostream& stream, const Texture* texture)
     if (!texture->HasMipMaps())
         header.flags |= IMG_FLAG_NOMIPMAPS;
 
-    auto currentFileSize = sizeof(IwiVersion) + sizeof(IwiHeader);
+    auto currentFileSize = sizeof(IwiVersionHeader) + sizeof(IwiHeader);
 
     const auto textureMipCount = texture->HasMipMaps() ? texture->GetMipMapCount() : 1;
     for (auto currentMipLevel = textureMipCount - 1; currentMipLevel >= 0; currentMipLevel--)

@@ -8,22 +8,23 @@ function useSourceTemplating(projectName)
         local templateFile = templateFiles[i]
         local relativeTemplatePath = path.getrelative(projectFolder, templateFile)
         local relativeResultPath = path.replaceextension(relativeTemplatePath, "")
+        local relativeLogFilePath = path.replaceextension(relativeTemplatePath, ".log")
         local resultExtension = path.getextension(relativeResultPath)
 
         local data = io.readfile(templateFile)
-        local gameOptionsStart, gameOptionsCount = string.find(data, "#options%s+GAME%s*%(")
+        local gameOptionsStart, gameOptionsEnd = string.find(data, "#options%s+GAME%s*%(")
 
         if gameOptionsStart == nil then
             error("Source template " .. relativeTemplatePath .. " must define an option called GAME")
         end
 
-        local gameOptionsPos, gameOptionsLenPlusOne = string.find(data, "[%a%d%s,]+%)", gameOptionsStart + gameOptionsCount)
+        local gameOptionsArgsStart, gameOptionsArgsEnd = string.find(data, "[%a%d%s,]+%)", gameOptionsEnd + 1)
 
-        if gameOptionsPos ~= gameOptionsStart + gameOptionsCount then
+        if gameOptionsArgsStart ~= gameOptionsEnd + 1 then
             error("Source template " .. relativeTemplatePath .. " must define an option called GAME")
         end
 
-        local gameOptions = string.sub(data, gameOptionsPos, gameOptionsLenPlusOne - 1)
+        local gameOptions = string.sub(data, gameOptionsArgsStart, gameOptionsArgsEnd - 1)
         local games = string.explode(gameOptions, ",%s*")
 
         files {
@@ -38,7 +39,11 @@ function useSourceTemplating(projectName)
             buildcommands {
                 '"' .. TargetDirectoryBuildTools .. '/' .. ExecutableByOs('RawTemplater') .. '"' 
                 .. ' -o "%{prj.location}/"'
+				.. " --build-log \"" .. relativeLogFilePath .. "\""
                 .. " %{file.relpath}"
+            }
+            buildoutputs {
+                "%{prj.location}/" .. relativeLogFilePath
             }
             for i = 1, #games do
                 local gameName = games[i]

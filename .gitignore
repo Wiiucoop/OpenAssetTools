@@ -1,5 +1,11 @@
-local/
-build/
+/local/
+/build/
+
 .vscode
 .idea
 user*.*
+*.aps
+
+node_modules
+/src/ModManUi/dist
+npm-debug.log*

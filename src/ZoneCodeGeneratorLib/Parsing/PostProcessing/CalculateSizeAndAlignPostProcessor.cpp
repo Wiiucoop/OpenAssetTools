@@ -2,7 +2,9 @@
 
 #include "Domain/Definition/ArrayDeclarationModifier.h"
 #include "Utils/Alignment.h"
+#include "Utils/Logging/Log.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <iostream>
@@ -26,7 +28,7 @@ namespace
 
         if (hasPointerModifier)
         {
-            declaration->m_alignment = GetPointerSizeForArchitecture(repository->GetArchitecture());
+            declaration->m_alignment = GetPointerSizeForWordSize(repository->GetWordSize());
         }
         else
         {
@@ -42,12 +44,7 @@ namespace
 
     bool CalculateAlign(IDataRepository* repository, DefinitionWithMembers* definition)
     {
-        if (definition->m_has_alignment_override)
-        {
-            definition->m_flags |= DefinitionWithMembers::FLAG_ALIGNMENT_FORCED;
-            definition->m_alignment = definition->m_alignment_override;
-        }
-        else
+        if (!definition->GetForceAlignment())
         {
             definition->m_alignment = 0;
             for (const auto& member : definition->m_members)
@@ -56,8 +53,7 @@ namespace
                     return false;
 
                 const auto memberAlignment = member->GetAlignment();
-                if (memberAlignment > definition->m_alignment)
-                    definition->m_alignment = memberAlignment;
+                definition->m_alignment = std::max(memberAlignment, definition->m_alignment);
             }
         }
 
@@ -91,7 +87,7 @@ namespace
                 switch (declarationModifier->GetType())
                 {
                 case DeclarationModifierType::POINTER:
-                    currentSize = GetPointerSizeForArchitecture(repository->GetArchitecture());
+                    currentSize = GetPointerSizeForWordSize(repository->GetWordSize());
                     break;
 
                 case DeclarationModifierType::ARRAY:
@@ -189,7 +185,7 @@ namespace
             return true;
         if (structDefinition->m_flags & DefinitionWithMembers::FLAG_FIELDS_CALCULATING)
         {
-            std::cerr << "Detected circular dependency:\n";
+            con::error("Detected circular dependency:");
             return false;
         }
 
@@ -212,7 +208,7 @@ namespace
             return true;
         if (unionDefinition->m_flags & DefinitionWithMembers::FLAG_FIELDS_CALCULATING)
         {
-            std::cerr << "Detected circular dependency:\n";
+            con::error("Detected circular dependency:");
             return false;
         }
 
@@ -255,37 +251,30 @@ namespace
 
 bool CalculateSizeAndAlignPostProcessor::PostProcess(IDataRepository* repository)
 {
-    if (repository->GetArchitecture() == Architecture::UNKNOWN)
+    if (repository->GetWordSize() == WordSize::UNKNOWN)
     {
-        std::cerr << "You must set an architecture!\n";
+        con::error("You must set a word size!");
         return false;
     }
 
     for (auto* structDefinition : repository->GetAllStructs())
     {
         if (!CalculateFields(repository, structDefinition))
-        {
-            std::cout << "\n";
+
             return false;
-        }
     }
 
     for (auto* unionDefinition : repository->GetAllUnions())
     {
         if (!CalculateFields(repository, unionDefinition))
-        {
-            std::cout << "\n";
+
             return false;
-        }
     }
 
     for (auto* typedefDeclaration : repository->GetAllTypedefs())
     {
         if (!CalculateFields(repository, typedefDeclaration->m_type_declaration.get()))
-        {
-            std::cout << "\n";
             return false;
-        }
     }
 
     return true;

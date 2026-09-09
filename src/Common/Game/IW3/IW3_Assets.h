@@ -9,49 +9,6 @@
 namespace IW3
 {
 #endif
-    enum XAssetType
-    {
-        ASSET_TYPE_XMODELPIECES = 0x0,
-        ASSET_TYPE_PHYSPRESET = 0x1,
-        ASSET_TYPE_XANIMPARTS = 0x2,
-        ASSET_TYPE_XMODEL = 0x3,
-        ASSET_TYPE_MATERIAL = 0x4,
-        ASSET_TYPE_TECHNIQUE_SET = 0x5,
-        ASSET_TYPE_IMAGE = 0x6,
-        ASSET_TYPE_SOUND = 0x7,
-        ASSET_TYPE_SOUND_CURVE = 0x8,
-        ASSET_TYPE_LOADED_SOUND = 0x9,
-        ASSET_TYPE_CLIPMAP = 0xA,
-        ASSET_TYPE_CLIPMAP_PVS = 0xB,
-        ASSET_TYPE_COMWORLD = 0xC,
-        ASSET_TYPE_GAMEWORLD_SP = 0xD,
-        ASSET_TYPE_GAMEWORLD_MP = 0xE,
-        ASSET_TYPE_MAP_ENTS = 0xF,
-        ASSET_TYPE_GFXWORLD = 0x10,
-        ASSET_TYPE_LIGHT_DEF = 0x11,
-        ASSET_TYPE_UI_MAP = 0x12,
-        ASSET_TYPE_FONT = 0x13,
-        ASSET_TYPE_MENULIST = 0x14,
-        ASSET_TYPE_MENU = 0x15,
-        ASSET_TYPE_LOCALIZE_ENTRY = 0x16,
-        ASSET_TYPE_WEAPON = 0x17,
-        ASSET_TYPE_SNDDRIVER_GLOBALS = 0x18,
-        ASSET_TYPE_FX = 0x19,
-        ASSET_TYPE_IMPACT_FX = 0x1A,
-        ASSET_TYPE_AITYPE = 0x1B,
-        ASSET_TYPE_MPTYPE = 0x1C,
-        ASSET_TYPE_CHARACTER = 0x1D,
-        ASSET_TYPE_XMODELALIAS = 0x1E,
-        ASSET_TYPE_RAWFILE = 0x1F,
-        ASSET_TYPE_STRINGTABLE = 0x20,
-        ASSET_TYPE_COUNT,
-
-        ASSET_TYPE_STRING = ASSET_TYPE_COUNT,
-        ASSET_TYPE_ASSETLIST,
-
-        ASSET_TYPE_FULLCOUNT
-    };
-
     enum XFileBlock
     {
         XFILE_BLOCK_TEMP,
@@ -96,6 +53,9 @@ namespace IW3
     struct FxImpactTable;
     struct RawFile;
     struct StringTable;
+
+    typedef unsigned short ScriptString;
+    typedef tdef_align32(16) char raw_byte16;
 
     union XAssetHeader
     {
@@ -206,16 +166,30 @@ namespace IW3
         bool tempDefaultToCylinder;
     };
 
+    struct PhysPresetInfo
+    {
+        float mass;
+        float bounce;
+        float friction;
+        int isFrictionInfinity;
+        float bulletForceScale;
+        float explosiveForceScale;
+        const char* sndAliasPrefix;
+        float piecesSpreadFraction;
+        float piecesUpwardVelocity;
+        int tempDefaultToCylinder;
+    };
+
     union XAnimIndices
     {
-        char* _1;
+        unsigned char* _1;
         uint16_t* _2;
         void* data;
     };
 
     struct XAnimNotifyInfo
     {
-        uint16_t name;
+        ScriptString name;
         float time;
     };
 
@@ -224,7 +198,7 @@ namespace IW3
 
     union XAnimDynamicIndicesTrans
     {
-        char _1[1];
+        unsigned char _1[1];
         uint16_t _2[1];
     };
 
@@ -236,8 +210,8 @@ namespace IW3
 
     struct XAnimPartTransFrames
     {
-        float mins[3];
-        float size[3];
+        vec3_t mins;
+        vec3_t size;
         XAnimDynamicFrames frames;
         XAnimDynamicIndicesTrans indices;
     };
@@ -251,31 +225,36 @@ namespace IW3
     struct XAnimPartTrans
     {
         uint16_t size;
-        char smallTrans;
+        unsigned char smallTrans;
         XAnimPartTransData u;
     };
 
     struct type_align(4) XQuat
+    {
+        int16_t value[4];
+    };
+
+    struct type_align(4) XQuat2
     {
         int16_t value[2];
     };
 
     union XAnimDynamicIndicesQuat
     {
-        char _1[1];
+        unsigned char _1[1];
         uint16_t _2[1];
     };
 
     struct XAnimDeltaPartQuatDataFrames
     {
-        XQuat* frames;
+        XQuat2* frames;
         XAnimDynamicIndicesQuat indices;
     };
 
     union XAnimDeltaPartQuatData
     {
         XAnimDeltaPartQuatDataFrames frames;
-        XQuat frame0;
+        XQuat2 frame0;
     };
 
     struct XAnimDeltaPartQuat
@@ -290,6 +269,22 @@ namespace IW3
         XAnimDeltaPartQuat* quat;
     };
 
+    enum XAnimPartType
+    {
+        PART_TYPE_NO_QUAT = 0x0,
+        PART_TYPE_HALF_QUAT = 0x1,
+        PART_TYPE_FULL_QUAT = 0x2,
+        PART_TYPE_HALF_QUAT_NO_SIZE = 0x3,
+        PART_TYPE_FULL_QUAT_NO_SIZE = 0x4,
+        PART_TYPE_SMALL_TRANS = 0x5,
+        PART_TYPE_TRANS = 0x6,
+        PART_TYPE_TRANS_NO_SIZE = 0x7,
+        PART_TYPE_NO_TRANS = 0x8,
+        PART_TYPE_ALL = 0x9,
+
+        PART_TYPE_COUNT
+    };
+
     struct XAnimParts
     {
         const char* name;
@@ -301,20 +296,20 @@ namespace IW3
         uint16_t numframes;
         bool bLoop;
         bool bDelta;
-        unsigned char boneCount[10];
-        char notifyCount;
-        char assetType;
+        unsigned char boneCount[PART_TYPE_COUNT];
+        unsigned char notifyCount;
+        unsigned char assetType;
         bool isDefault;
         unsigned int randomDataShortCount;
         unsigned int indexCount;
         float framerate;
         float frequency;
-        uint16_t* names;
-        char* dataByte;
+        ScriptString* names;
+        unsigned char* dataByte;
         int16_t* dataShort;
         int* dataInt;
         int16_t* randomDataShort;
-        char* randomDataByte;
+        unsigned char* randomDataByte;
         int* randomDataInt;
         XAnimIndices indices;
         XAnimNotifyInfo* notify;
@@ -329,8 +324,8 @@ namespace IW3
 
     struct DObjAnimMat
     {
-        float quat[4];
-        float trans[3];
+        vec4_t quat;
+        vec3_t trans;
         float transWeight;
     };
 
@@ -354,8 +349,8 @@ namespace IW3
 
     struct XSurfaceCollisionTree
     {
-        float trans[3];
-        float scale[3];
+        vec3_t trans;
+        vec3_t scale;
         unsigned int nodeCount;
         XSurfaceCollisionNode* nodes;
         unsigned int leafCount;
@@ -390,7 +385,7 @@ namespace IW3
 
     struct type_align(16) GfxPackedVertex
     {
-        float xyz[3];
+        vec3_t xyz;
         float binormalSign;
         GfxColor color;
         PackedTexCoords texCoord;
@@ -404,7 +399,12 @@ namespace IW3
         uint16_t* vertsBlend;
     };
 
-    typedef tdef_align32(16) uint16_t r_index16_t;
+    struct XSurfaceTri
+    {
+        uint16_t i[3];
+    };
+
+    typedef tdef_align32(16) XSurfaceTri XSurfaceTri16;
 
     struct XSurface
     {
@@ -415,7 +415,7 @@ namespace IW3
         char zoneHandle;
         uint16_t baseTriIndex;
         uint16_t baseVertIndex;
-        r_index16_t (*triIndices)[3];
+        XSurfaceTri16* triIndices;
         XSurfaceVertexInfo vertInfo;
         GfxPackedVertex* verts0;
         unsigned int vertListCount;
@@ -455,8 +455,8 @@ namespace IW3
 
     struct XBoneInfo
     {
-        float bounds[2][3];
-        float offset[3];
+        vec3_t bounds[2];
+        vec3_t offset;
         float radiusSquared;
     };
 
@@ -485,7 +485,7 @@ namespace IW3
         unsigned int numsides;
         cbrushside_t* sides;
         int16_t axialMaterialNum[2][3];
-        char* baseAdjacentSide;
+        cbrushedge_t* baseAdjacentSide;
         int16_t firstAdjacentSideOffsets[2][3];
         char edgeCount[2][3];
         int totalEdgeCount;
@@ -520,6 +520,11 @@ namespace IW3
         char pad;
     };
 
+    struct XModelQuat
+    {
+        int16_t v[4];
+    };
+
     struct XModel
     {
         const char* name;
@@ -527,11 +532,11 @@ namespace IW3
         unsigned char numRootBones;
         unsigned char numsurfs;
         char lodRampType;
-        uint16_t* boneNames;
-        char* parentList;
-        int16_t (*quats)[4];
-        float (*trans)[4];
-        char* partClassification;
+        ScriptString* boneNames;
+        unsigned char* parentList;
+        XModelQuat* quats;
+        float* trans;
+        unsigned char* partClassification;
         DObjAnimMat* baseMat;
         XSurface* surfs;
         Material** materialHandles;
@@ -541,13 +546,13 @@ namespace IW3
         int contents;
         XBoneInfo* boneInfo;
         float radius;
-        float mins[3];
-        float maxs[3];
+        vec3_t mins;
+        vec3_t maxs;
         uint16_t numLods;
-        uint16_t collLod;
+        int16_t collLod;
         XModelStreamInfo streamInfo;
         int memUsage;
-        char flags;
+        unsigned char flags;
         bool bad;
         PhysPreset* physPreset;
         PhysGeomList* physGeoms;
@@ -566,7 +571,8 @@ namespace IW3
         GFXS_BLEND_INVDESTALPHA = 0x8,
         GFXS_BLEND_DESTCOLOR = 0x9,
         GFXS_BLEND_INVDESTCOLOR = 0xA,
-        GFXS_BLEND_MASK = 0xF,
+
+        GFXS_BLEND_COUNT
     };
 
     enum GfxBlendOp
@@ -577,7 +583,40 @@ namespace IW3
         GFXS_BLENDOP_REVSUBTRACT = 0x3,
         GFXS_BLENDOP_MIN = 0x4,
         GFXS_BLENDOP_MAX = 0x5,
-        GFXS_BLENDOP_MASK = 0x7,
+
+        GFXS_BLENDOP_COUNT
+    };
+
+    enum GfxAlphaTest_e
+    {
+        GFXS_ALPHA_TEST_GT_0 = 1,
+        GFXS_ALPHA_TEST_LT_128 = 2,
+        GFXS_ALPHA_TEST_GE_128 = 3,
+
+        GFXS_ALPHA_TEST_COUNT
+    };
+
+    enum GfxCullFace_e
+    {
+        GFXS_CULL_NONE = 1,
+        GFXS_CULL_BACK = 2,
+        GFXS_CULL_FRONT = 3,
+    };
+
+    enum GfxDepthTest_e
+    {
+        GFXS_DEPTHTEST_ALWAYS = 0,
+        GFXS_DEPTHTEST_LESS = 1,
+        GFXS_DEPTHTEST_EQUAL = 2,
+        GFXS_DEPTHTEST_LESSEQUAL = 3
+    };
+
+    enum GfxPolygonOffset_e
+    {
+        GFXS_POLYGON_OFFSET_0 = 0,
+        GFXS_POLYGON_OFFSET_1 = 1,
+        GFXS_POLYGON_OFFSET_2 = 2,
+        GFXS_POLYGON_OFFSET_SHADOWMAP = 3
     };
 
     enum GfxStencilOp
@@ -589,10 +628,19 @@ namespace IW3
         GFXS_STENCILOP_DECRSAT = 0x4,
         GFXS_STENCILOP_INVERT = 0x5,
         GFXS_STENCILOP_INCR = 0x6,
-        GFXS_STENCILOP_DECR = 0x7,
+        GFXS_STENCILOP_DECR = 0x7
+    };
 
-        GFXS_STENCILOP_COUNT,
-        GFXS_STENCILOP_MASK = 0x7
+    enum GfxStencilFunc
+    {
+        GFXS_STENCILFUNC_NEVER = 0x0,
+        GFXS_STENCILFUNC_LESS = 0x1,
+        GFXS_STENCILFUNC_EQUAL = 0x2,
+        GFXS_STENCILFUNC_LESSEQUAL = 0x3,
+        GFXS_STENCILFUNC_GREATER = 0x4,
+        GFXS_STENCILFUNC_NOTEQUAL = 0x5,
+        GFXS_STENCILFUNC_GREATEREQUAL = 0x6,
+        GFXS_STENCILFUNC_ALWAYS = 0x7
     };
 
     enum GfxStateBitsEnum : unsigned int
@@ -613,10 +661,10 @@ namespace IW3
         GFXS0_ATEST_GE_128 = 0x3000,
         GFXS0_ATEST_MASK = 0x3000,
 
-        GFXS0_CULL_SHIFT = 0xE,
         GFXS0_CULL_NONE = 0x4000,
         GFXS0_CULL_BACK = 0x8000,
         GFXS0_CULL_FRONT = 0xC000,
+        GFXS0_CULL_SHIFT = 0xE,
         GFXS0_CULL_MASK = 0xC000,
 
         GFXS0_SRCBLEND_ALPHA_SHIFT = 0x10,
@@ -638,18 +686,18 @@ namespace IW3
         GFXS1_DEPTHWRITE = 0x1,
 
         GFXS1_DEPTHTEST_DISABLE = 0x2,
-        GFXS1_DEPTHTEST_SHIFT = 0x2,
         GFXS1_DEPTHTEST_ALWAYS = 0x0,
         GFXS1_DEPTHTEST_LESS = 0x4,
         GFXS1_DEPTHTEST_EQUAL = 0x8,
         GFXS1_DEPTHTEST_LESSEQUAL = 0xC,
+        GFXS1_DEPTHTEST_SHIFT = 0x2,
         GFXS1_DEPTHTEST_MASK = 0xC,
 
-        GFXS1_POLYGON_OFFSET_SHIFT = 0x4,
         GFXS1_POLYGON_OFFSET_0 = 0x0,
         GFXS1_POLYGON_OFFSET_1 = 0x10,
         GFXS1_POLYGON_OFFSET_2 = 0x20,
         GFXS1_POLYGON_OFFSET_SHADOWMAP = 0x30,
+        GFXS1_POLYGON_OFFSET_SHIFT = 0x4,
         GFXS1_POLYGON_OFFSET_MASK = 0x30,
 
         GFXS1_STENCIL_FRONT_ENABLE = 0x40,
@@ -672,16 +720,61 @@ namespace IW3
         GFXS1_STENCILOP_FRONTBACK_MASK = 0x1FF1FF00,
     };
 
+    struct GfxStateBitsLoadBitsStructured
+    {
+        // Byte 0
+        unsigned int srcBlendRgb : 4;       // 0-3
+        unsigned int dstBlendRgb : 4;       // 4-7
+        unsigned int blendOpRgb : 3;        // 8-10
+        unsigned int alphaTestDisabled : 1; // 11
+        unsigned int alphaTest : 2;         // 12-13
+        unsigned int cullFace : 2;          // 14-15
+        unsigned int srcBlendAlpha : 4;     // 16-19
+        unsigned int dstBlendAlpha : 4;     // 20-23
+        unsigned int blendOpAlpha : 3;      // 24-26
+        unsigned int colorWriteRgb : 1;     // 27
+        unsigned int colorWriteAlpha : 1;   // 28
+        unsigned int unused1 : 2;           // 29-30
+        unsigned int polymodeLine : 1;      // 31
+
+        // Byte 1
+        unsigned int depthWrite : 1;          // 0
+        unsigned int depthTestDisabled : 1;   // 1
+        unsigned int depthTest : 2;           // 2-3
+        unsigned int polygonOffset : 2;       // 4-5
+        unsigned int stencilFrontEnabled : 1; // 6
+        unsigned int stencilBackEnabled : 1;  // 7
+        unsigned int stencilFrontPass : 3;    // 8-10
+        unsigned int stencilFrontFail : 3;    // 11-13
+        unsigned int stencilFrontZFail : 3;   // 14-16
+        unsigned int stencilFrontFunc : 3;    // 17-19
+        unsigned int stencilBackPass : 3;     // 20-22
+        unsigned int stencilBackFail : 3;     // 23-25
+        unsigned int stencilBackZFail : 3;    // 26-28
+        unsigned int stencilBackFunc : 3;     // 29-31
+    };
+
+    union GfxStateBitsLoadBits
+    {
+        unsigned int raw[2];
+        GfxStateBitsLoadBitsStructured structured;
+    };
+
+#ifndef __zonecodegenerator
+    static_assert(sizeof(GfxStateBitsLoadBits) == 8);
+    static_assert(sizeof(GfxStateBitsLoadBitsStructured) == 8);
+#endif
+
     struct GfxStateBits
     {
-        unsigned int loadBits[2];
+        GfxStateBitsLoadBits loadBits;
     };
 
     struct type_align(16) MaterialConstantDef
     {
         unsigned int nameHash;
         char name[12];
-        float literal[4];
+        vec4_t literal;
     };
 
     struct complex_s
@@ -718,6 +811,26 @@ namespace IW3
         water_t* water;
     };
 
+    enum TextureFilter
+    {
+        TEXTURE_FILTER_DISABLED = 0x0,
+        TEXTURE_FILTER_NEAREST = 0x1,
+        TEXTURE_FILTER_LINEAR = 0x2,
+        TEXTURE_FILTER_ANISO2X = 0x3,
+        TEXTURE_FILTER_ANISO4X = 0x4,
+
+        TEXTURE_FILTER_COUNT
+    };
+
+    enum SamplerStateBitsMipMap_e
+    {
+        SAMPLER_MIPMAP_ENUM_DISABLED,
+        SAMPLER_MIPMAP_ENUM_NEAREST,
+        SAMPLER_MIPMAP_ENUM_LINEAR,
+
+        SAMPLER_MIPMAP_ENUM_COUNT
+    };
+
     enum SamplerStateBits_e
     {
         SAMPLER_FILTER_SHIFT = 0x0,
@@ -743,13 +856,26 @@ namespace IW3
         SAMPLER_CLAMP_MASK = 0xE0,
     };
 
+    struct MaterialTextureDefSamplerState
+    {
+        unsigned char filter : 3;
+        unsigned char mipMap : 2;
+        unsigned char clampU : 1;
+        unsigned char clampV : 1;
+        unsigned char clampW : 1;
+    };
+
+#ifndef __zonecodegenerator
+    static_assert(sizeof(MaterialTextureDefSamplerState) == 1u);
+#endif
+
     struct MaterialTextureDef
     {
         unsigned int nameHash;
         char nameStart;
         char nameEnd;
-        unsigned char samplerState; // SamplerStateBits_e
-        unsigned char semantic;     // TextureSemantic
+        MaterialTextureDefSamplerState samplerState; // SamplerStateBits_e
+        unsigned char semantic;                      // TextureSemantic
         MaterialTextureDefInfo u;
     };
 
@@ -842,8 +968,9 @@ namespace IW3
         CAMERA_REGION_LIT = 0x0,
         CAMERA_REGION_DECAL = 0x1,
         CAMERA_REGION_EMISSIVE = 0x2,
-        CAMERA_REGION_COUNT = 0x3,
-        CAMERA_REGION_NONE = 0x3,
+
+        CAMERA_REGION_COUNT,
+        CAMERA_REGION_NONE = CAMERA_REGION_COUNT,
     };
 
     enum MaterialStateFlags
@@ -876,8 +1003,8 @@ namespace IW3
     struct MaterialArgumentCodeConst
     {
         uint16_t index;
-        char firstRow;
-        char rowCount;
+        unsigned char firstRow;
+        unsigned char rowCount;
     };
 
     union MaterialArgumentDef
@@ -905,265 +1032,189 @@ namespace IW3
         MTL_ARG_MATERIAL_PIXEL_CONST = 0x6,
         MTL_ARG_LITERAL_PIXEL_CONST = 0x7,
 
-        MLT_ARG_COUNT
+        MTL_ARG_COUNT
     };
 
-    enum MaterialConstantSource
+    enum MaterialType
+    {
+        MTL_TYPE_DEFAULT = 0x0,
+        MTL_TYPE_MODEL = 0x1,         // m_
+        MTL_TYPE_MODEL_VERTCOL = 0x2, // mc_
+        MTL_TYPE_WORLD = 0x3,         // w_
+        MTL_TYPE_WORLD_VERTCOL = 0x4, // wc_
+
+        MTL_TYPE_COUNT,
+    };
+
+    struct MaterialTypeInfo
+    {
+        const char* materialPrefix;
+        const char* techniqueSetPrefix;
+    };
+
+    enum ShaderCodeConstants
     {
         CONST_SRC_CODE_MAYBE_DIRTY_PS_BEGIN = 0x0,
+
         CONST_SRC_CODE_LIGHT_POSITION = 0x0,
         CONST_SRC_CODE_LIGHT_DIFFUSE = 0x1,
-        CONST_SRC_CODE_LIGHT_SPOTDIR = 0x2,
-        CONST_SRC_CODE_LIGHT_SPOTFACTORS = 0x3,
-        CONST_SRC_CODE_LIGHT_ATTENUATION = 0x4,
-        CONST_SRC_CODE_LIGHT_FALLOFF_A = 0x5,
-        CONST_SRC_CODE_LIGHT_FALLOFF_B = 0x6,
-        CONST_SRC_CODE_LIGHT_SPOT_MATRIX0 = 0x7,
-        CONST_SRC_CODE_LIGHT_SPOT_MATRIX1 = 0x8,
-        CONST_SRC_CODE_LIGHT_SPOT_MATRIX2 = 0x9,
-        CONST_SRC_CODE_LIGHT_SPOT_MATRIX3 = 0xA,
-        CONST_SRC_CODE_LIGHT_SPOT_AABB = 0xB,
-        CONST_SRC_CODE_LIGHT_CONE_CONTROL1 = 0xC,
-        CONST_SRC_CODE_LIGHT_CONE_CONTROL2 = 0xD,
-        CONST_SRC_CODE_LIGHT_SPOT_COOKIE_SLIDE_CONTROL = 0xE,
-        CONST_SRC_CODE_SHADOW_PARMS = 0xF,
-        CONST_SRC_CODE_SHADOWMAP_POLYGON_OFFSET = 0x10,
-        CONST_SRC_CODE_RENDER_TARGET_SIZE = 0x11,
-        CONST_SRC_CODE_UPSCALED_TARGET_SIZE = 0x12,
-        CONST_SRC_CODE_DOF_EQUATION_VIEWMODEL_AND_FAR_BLUR = 0x13,
-        CONST_SRC_CODE_DOF_EQUATION_SCENE = 0x14,
-        CONST_SRC_CODE_DOF_LERP_SCALE = 0x15,
-        CONST_SRC_CODE_DOF_LERP_BIAS = 0x16,
-        CONST_SRC_CODE_DOF_ROW_DELTA = 0x17,
-        CONST_SRC_CODE_PARTICLE_CLOUD_COLOR = 0x18,
-        CONST_SRC_CODE_GAMETIME = 0x19,
-        CONST_SRC_CODE_MAYBE_DIRTY_PS_END = 0x1A,
-        CONST_SRC_CODE_ALWAYS_DIRTY_PS_BEGIN = 0x1A,
-        CONST_SRC_CODE_FILTER_TAP_0 = 0x1A,
-        CONST_SRC_CODE_FILTER_TAP_1 = 0x1B,
-        CONST_SRC_CODE_FILTER_TAP_2 = 0x1C,
-        CONST_SRC_CODE_FILTER_TAP_3 = 0x1D,
-        CONST_SRC_CODE_FILTER_TAP_4 = 0x1E,
-        CONST_SRC_CODE_FILTER_TAP_5 = 0x1F,
-        CONST_SRC_CODE_FILTER_TAP_6 = 0x20,
-        CONST_SRC_CODE_FILTER_TAP_7 = 0x21,
-        CONST_SRC_CODE_COLOR_MATRIX_R = 0x22,
-        CONST_SRC_CODE_COLOR_MATRIX_G = 0x23,
-        CONST_SRC_CODE_COLOR_MATRIX_B = 0x24,
-        CONST_SRC_CODE_ALWAYS_DIRTY_PS_END = 0x25,
-        CONST_SRC_CODE_NEVER_DIRTY_PS_BEGIN = 0x25,
-        CONST_SRC_CODE_SHADOWMAP_SWITCH_PARTITION = 0x25,
-        CONST_SRC_CODE_SUNSHADOWMAP_PIXEL_SIZE = 0x26,
-        CONST_SRC_CODE_SHADOWMAP_SCALE = 0x27,
-        CONST_SRC_CODE_ZNEAR = 0x28,
-        CONST_SRC_CODE_SUN_POSITION = 0x29,
-        CONST_SRC_CODE_SUN_DIFFUSE = 0x2A,
-        CONST_SRC_CODE_LIGHTING_LOOKUP_SCALE = 0x2B,
-        CONST_SRC_CODE_DEBUG_BUMPMAP = 0x2C,
-        CONST_SRC_CODE_DEBUG_PERFORMANCE = 0x2D,
-        CONST_SRC_CODE_MATERIAL_COLOR = 0x2E,
-        CONST_SRC_CODE_FOG = 0x2F,
-        CONST_SRC_CODE_FOG2 = 0x30,
-        CONST_SRC_CODE_FOG_COLOR = 0x31,
-        CONST_SRC_CODE_SUN_FOG = 0x32,
-        CONST_SRC_CODE_SUN_FOG_DIR = 0x33,
-        CONST_SRC_CODE_SUN_FOG_COLOR = 0x34,
-        CONST_SRC_CODE_GLOW_SETUP = 0x35,
-        CONST_SRC_CODE_GLOW_APPLY = 0x36,
-        CONST_SRC_CODE_COLOR_BIAS = 0x37,
-        CONST_SRC_CODE_COLOR_TINT_BASE = 0x38,
-        CONST_SRC_CODE_COLOR_TINT_DELTA = 0x39,
-        CONST_SRC_CODE_OUTDOOR_FEATHER_PARMS = 0x3A,
-        CONST_SRC_CODE_SKY_TRANSITION = 0x3B,
-        CONST_SRC_CODE_SPOT_SHADOWMAP_PIXEL_ADJUST = 0x3C,
-        CONST_SRC_CODE_DLIGHT_SPOT_SHADOWMAP_PIXEL_ADJUST = 0x3D,
-        CONST_SRC_CODE_CLIP_SPACE_LOOKUP_SCALE = 0x3E,
-        CONST_SRC_CODE_CLIP_SPACE_LOOKUP_OFFSET = 0x3F,
-        CONST_SRC_CODE_PARTICLE_CLOUD_MATRIX = 0x40,
-        CONST_SRC_CODE_PARTICLE_CLOUD_VEL_WORLD = 0x41,
-        CONST_SRC_CODE_DEPTH_FROM_CLIP = 0x42,
-        CONST_SRC_CODE_CODE_MESH_ARG_0 = 0x43,
-        CONST_SRC_CODE_CODE_MESH_ARG_1 = 0x44,
-        CONST_SRC_CODE_CODE_MESH_ARG_LAST = 0x44,
-        CONST_SRC_CODE_GRID_LIGHTING_COORDS_AND_VIS = 0x45,
-        CONST_SRC_CODE_GRID_LIGHTING_SH_0 = 0x46,
-        CONST_SRC_CODE_GRID_LIGHTING_SH_1 = 0x47,
-        CONST_SRC_CODE_GRID_LIGHTING_SH_2 = 0x48,
-        CONST_SRC_CODE_REFLECTION_LIGHTING_SH_0 = 0x49,
-        CONST_SRC_CODE_REFLECTION_LIGHTING_SH_1 = 0x4A,
-        CONST_SRC_CODE_REFLECTION_LIGHTING_SH_2 = 0x4B,
-        CONST_SRC_CODE_WIND_DIRECTION = 0x4C,
-        CONST_SRC_CODE_MOTIONBLUR_DIRECTION_AND_MAGNITUDE = 0x4D,
-        CONST_SRC_CODE_COMPOSITE_FX_DISTORTION = 0x4E,
-        CONST_SRC_CODE_GLOW_BLOOM_SCALE = 0x4F,
-        CONST_SRC_CODE_COMPOSITE_FX_OVERLAY_TEXCOORD = 0x50,
-        CONST_SRC_CODE_COLOR_BIAS1 = 0x51,
-        CONST_SRC_CODE_COLOR_TINT_BASE1 = 0x52,
-        CONST_SRC_CODE_COLOR_TINT_DELTA1 = 0x53,
-        CONST_SRC_CODE_POSTFX_FADE_EFFECT = 0x54,
-        CONST_SRC_CODE_VIEWPORT_DIMENSIONS = 0x55,
-        CONST_SRC_CODE_FRAMEBUFFER_READ = 0x56,
-        CONST_SRC_CODE_RESIZE_PARAMS1 = 0x57,
-        CONST_SRC_CODE_RESIZE_PARAMS2 = 0x58,
-        CONST_SRC_CODE_RESIZE_PARAMS3 = 0x59,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_0 = 0x5A,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_1 = 0x5B,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_2 = 0x5C,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_3 = 0x5D,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_4 = 0x5E,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_5 = 0x5F,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_6 = 0x60,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_7 = 0x61,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_8 = 0x62,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_9 = 0x63,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_10 = 0x64,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_11 = 0x65,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_12 = 0x66,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_13 = 0x67,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_14 = 0x68,
-        CONST_SRC_CODE_VARIANT_WIND_SPRING_15 = 0x69,
-        CONST_SRC_CODE_CHARACTER_CHARRED_AMOUNT = 0x6A,
-        CONST_SRC_CODE_POSTFX_CONTROL0 = 0x6B,
-        CONST_SRC_CODE_POSTFX_CONTROL1 = 0x6C,
-        CONST_SRC_CODE_POSTFX_CONTROL2 = 0x6D,
-        CONST_SRC_CODE_POSTFX_CONTROL3 = 0x6E,
-        CONST_SRC_CODE_POSTFX_CONTROL4 = 0x6F,
-        CONST_SRC_CODE_POSTFX_CONTROL5 = 0x70,
-        CONST_SRC_CODE_POSTFX_CONTROL6 = 0x71,
-        CONST_SRC_CODE_POSTFX_CONTROL7 = 0x72,
-        CONST_SRC_CODE_POSTFX_CONTROL8 = 0x73,
-        CONST_SRC_CODE_POSTFX_CONTROL9 = 0x74,
-        CONST_SRC_CODE_POSTFX_CONTROLA = 0x75,
-        CONST_SRC_CODE_POSTFX_CONTROLB = 0x76,
-        CONST_SRC_CODE_POSTFX_CONTROLC = 0x77,
-        CONST_SRC_CODE_POSTFX_CONTROLD = 0x78,
-        CONST_SRC_CODE_POSTFX_CONTROLE = 0x79,
-        CONST_SRC_CODE_POSTFX_CONTROLF = 0x7A,
-        CONST_SRC_CODE_HDRCONTROL_0 = 0x7B,
-        CONST_SRC_CODE_HDRCONTROL_1 = 0x7C,
-        CONST_SRC_CODE_GLIGHT_POSXS = 0x7D,
-        CONST_SRC_CODE_GLIGHT_POSYS = 0x7E,
-        CONST_SRC_CODE_GLIGHT_POSZS = 0x7F,
-        CONST_SRC_CODE_GLIGHT_FALLOFFS = 0x80,
-        CONST_SRC_CODE_GLIGHT_REDS = 0x81,
-        CONST_SRC_CODE_GLIGHT_GREENS = 0x82,
-        CONST_SRC_CODE_GLIGHT_BLUES = 0x83,
-        CONST_SRC_CODE_DLIGHT_POSITION = 0x84,
-        CONST_SRC_CODE_DLIGHT_DIFFUSE = 0x85,
-        CONST_SRC_CODE_DLIGHT_ATTENUATION = 0x86,
-        CONST_SRC_CODE_DLIGHT_FALLOFF = 0x87,
-        CONST_SRC_CODE_DLIGHT_SPOT_MATRIX_0 = 0x88,
-        CONST_SRC_CODE_DLIGHT_SPOT_MATRIX_1 = 0x89,
-        CONST_SRC_CODE_DLIGHT_SPOT_MATRIX_2 = 0x8A,
-        CONST_SRC_CODE_DLIGHT_SPOT_MATRIX_3 = 0x8B,
-        CONST_SRC_CODE_DLIGHT_SPOT_DIR = 0x8C,
-        CONST_SRC_CODE_DLIGHT_SPOT_FACTORS = 0x8D,
-        CONST_SRC_CODE_DLIGHT_SHADOW_LOOKUP_MATRIX_0 = 0x8E,
-        CONST_SRC_CODE_DLIGHT_SHADOW_LOOKUP_MATRIX_1 = 0x8F,
-        CONST_SRC_CODE_DLIGHT_SHADOW_LOOKUP_MATRIX_2 = 0x90,
-        CONST_SRC_CODE_DLIGHT_SHADOW_LOOKUP_MATRIX_3 = 0x91,
-        CONST_SRC_CODE_CLOUD_LAYER_CONTROL0 = 0x92,
-        CONST_SRC_CODE_CLOUD_LAYER_CONTROL1 = 0x93,
-        CONST_SRC_CODE_CLOUD_LAYER_CONTROL2 = 0x94,
-        CONST_SRC_CODE_CLOUD_LAYER_CONTROL3 = 0x95,
-        CONST_SRC_CODE_CLOUD_LAYER_CONTROL4 = 0x96,
-        CONST_SRC_CODE_HERO_LIGHTING_R = 0x97,
-        CONST_SRC_CODE_HERO_LIGHTING_G = 0x98,
-        CONST_SRC_CODE_HERO_LIGHTING_B = 0x99,
-        CONST_SRC_CODE_LIGHT_HERO_SCALE = 0x9A,
-        CONST_SRC_CODE_CINEMATIC_BLUR_BOX = 0x9B,
-        CONST_SRC_CODE_CINEMATIC_BLUR_BOX2 = 0x9C,
-        CONST_SRC_CODE_ADSZSCALE = 0x9D,
-        CONST_SRC_CODE_UI3D_UV_SETUP_0 = 0x9E,
-        CONST_SRC_CODE_UI3D_UV_SETUP_1 = 0x9F,
-        CONST_SRC_CODE_UI3D_UV_SETUP_2 = 0xA0,
-        CONST_SRC_CODE_UI3D_UV_SETUP_3 = 0xA1,
-        CONST_SRC_CODE_UI3D_UV_SETUP_4 = 0xA2,
-        CONST_SRC_CODE_UI3D_UV_SETUP_5 = 0xA3,
-        CONST_SRC_CODE_CHARACTER_DISSOLVE_COLOR = 0xA4,
-        CONST_SRC_CODE_CAMERA_LOOK = 0xA5,
-        CONST_SRC_CODE_CAMERA_UP = 0xA6,
-        CONST_SRC_CODE_CAMERA_SIDE = 0xA7,
-        CONST_SRC_CODE_RIMINTENSITY = 0xA8,
-        CONST_SRC_CODE_GENERIC_PARAM0 = 0xA9,
-        CONST_SRC_CODE_GENERIC_PARAM1 = 0xAA,
-        CONST_SRC_CODE_GENERIC_PARAM2 = 0xAB,
-        CONST_SRC_CODE_GENERIC_PARAM3 = 0xAC,
-        CONST_SRC_CODE_GENERIC_PARAM4 = 0xAD,
-        CONST_SRC_CODE_GENERIC_PARAM5 = 0xAE,
-        CONST_SRC_CODE_GENERIC_PARAM6 = 0xAF,
-        CONST_SRC_CODE_GENERIC_PARAM7 = 0xB0,
-        CONST_SRC_CODE_GENERIC_EYEOFFSET = 0xB1,
-        CONST_SRC_CODE_GENERIC_QUADINTENSITY = 0xB2,
-        CONST_SRC_CODE_WEAPON_PARAM0 = 0xB3,
-        CONST_SRC_CODE_WEAPON_PARAM1 = 0xB4,
-        CONST_SRC_CODE_WEAPON_PARAM2 = 0xB5,
-        CONST_SRC_CODE_WEAPON_PARAM3 = 0xB6,
-        CONST_SRC_CODE_WEAPON_PARAM4 = 0xB7,
-        CONST_SRC_CODE_WEAPON_PARAM5 = 0xB8,
-        CONST_SRC_CODE_WEAPON_PARAM6 = 0xB9,
-        CONST_SRC_CODE_WEAPON_PARAM7 = 0xBA,
-        CONST_SRC_CODE_WEAPON_PARAM8 = 0xBB,
-        CONST_SRC_CODE_WEAPON_PARAM9 = 0xBC,
-        CONST_SRC_CODE_QRCODE_0 = 0xBD,
-        CONST_SRC_CODE_QRCODE_1 = 0xBE,
-        CONST_SRC_CODE_QRCODE_2 = 0xBF,
-        CONST_SRC_CODE_QRCODE_3 = 0xC0,
-        CONST_SRC_CODE_QRCODE_4 = 0xC1,
-        CONST_SRC_CODE_QRCODE_5 = 0xC2,
-        CONST_SRC_CODE_QRCODE_6 = 0xC3,
-        CONST_SRC_CODE_QRCODE_7 = 0xC4,
-        CONST_SRC_CODE_QRCODE_8 = 0xC5,
-        CONST_SRC_CODE_QRCODE_9 = 0xC6,
-        CONST_SRC_CODE_QRCODE_10 = 0xC7,
-        CONST_SRC_CODE_QRCODE_11 = 0xC8,
-        CONST_SRC_CODE_EYEOFFSET = 0xC9,
-        CONST_SRC_CODE_SKY_COLOR_MULTIPLIER = 0xCA,
-        CONST_SRC_CODE_EXTRA_CAM_PARAM = 0xCB,
-        CONST_SRC_CODE_EMBLEM_LUT_SELECTOR = 0xCC,
-        CONST_SRC_CODE_DEBUG_COLOR_OVERRIDE = 0xCD,
-        CONST_SRC_CODE_DEBUG_ALPHA_OVERRIDE = 0xCE,
-        CONST_SRC_CODE_DEBUG_NORMAL_OVERRIDE = 0xCF,
-        CONST_SRC_CODE_DEBUG_SPECULAR_OVERRIDE = 0xD0,
-        CONST_SRC_CODE_DEBUG_GLOSS_OVERRIDE = 0xD1,
-        CONST_SRC_CODE_DEBUG_OCCLUSION_OVERRIDE = 0xD2,
-        CONST_SRC_CODE_NEVER_DIRTY_PS_END = 0xD3,
-        CONST_SRC_CODE_COUNT_FLOAT4 = 0xD3,
-        CONST_SRC_FIRST_CODE_MATRIX = 0xD3,
-        CONST_SRC_CODE_WORLD_MATRIX = 0xD3,
-        CONST_SRC_CODE_INVERSE_WORLD_MATRIX = 0xD4,
-        CONST_SRC_CODE_TRANSPOSE_WORLD_MATRIX = 0xD5,
-        CONST_SRC_CODE_INVERSE_TRANSPOSE_WORLD_MATRIX = 0xD6,
-        CONST_SRC_CODE_VIEW_MATRIX = 0xD7,
-        CONST_SRC_CODE_INVERSE_VIEW_MATRIX = 0xD8,
-        CONST_SRC_CODE_TRANSPOSE_VIEW_MATRIX = 0xD9,
-        CONST_SRC_CODE_INVERSE_TRANSPOSE_VIEW_MATRIX = 0xDA,
-        CONST_SRC_CODE_PROJECTION_MATRIX = 0xDB,
-        CONST_SRC_CODE_INVERSE_PROJECTION_MATRIX = 0xDC,
-        CONST_SRC_CODE_TRANSPOSE_PROJECTION_MATRIX = 0xDD,
-        CONST_SRC_CODE_INVERSE_TRANSPOSE_PROJECTION_MATRIX = 0xDE,
-        CONST_SRC_CODE_WORLD_VIEW_MATRIX = 0xDF,
-        CONST_SRC_CODE_INVERSE_WORLD_VIEW_MATRIX = 0xE0,
-        CONST_SRC_CODE_TRANSPOSE_WORLD_VIEW_MATRIX = 0xE1,
-        CONST_SRC_CODE_INVERSE_TRANSPOSE_WORLD_VIEW_MATRIX = 0xE2,
-        CONST_SRC_CODE_VIEW_PROJECTION_MATRIX = 0xE3,
-        CONST_SRC_CODE_INVERSE_VIEW_PROJECTION_MATRIX = 0xE4,
-        CONST_SRC_CODE_TRANSPOSE_VIEW_PROJECTION_MATRIX = 0xE5,
-        CONST_SRC_CODE_INVERSE_TRANSPOSE_VIEW_PROJECTION_MATRIX = 0xE6,
-        CONST_SRC_CODE_WORLD_VIEW_PROJECTION_MATRIX = 0xE7,
-        CONST_SRC_CODE_INVERSE_WORLD_VIEW_PROJECTION_MATRIX = 0xE8,
-        CONST_SRC_CODE_TRANSPOSE_WORLD_VIEW_PROJECTION_MATRIX = 0xE9,
-        CONST_SRC_CODE_INVERSE_TRANSPOSE_WORLD_VIEW_PROJECTION_MATRIX = 0xEA,
-        CONST_SRC_CODE_SHADOW_LOOKUP_MATRIX = 0xEB,
-        CONST_SRC_CODE_INVERSE_SHADOW_LOOKUP_MATRIX = 0xEC,
-        CONST_SRC_CODE_TRANSPOSE_SHADOW_LOOKUP_MATRIX = 0xED,
-        CONST_SRC_CODE_INVERSE_TRANSPOSE_SHADOW_LOOKUP_MATRIX = 0xEE,
-        CONST_SRC_CODE_WORLD_OUTDOOR_LOOKUP_MATRIX = 0xEF,
-        CONST_SRC_CODE_INVERSE_WORLD_OUTDOOR_LOOKUP_MATRIX = 0xF0,
-        CONST_SRC_CODE_TRANSPOSE_WORLD_OUTDOOR_LOOKUP_MATRIX = 0xF1,
-        CONST_SRC_CODE_INVERSE_TRANSPOSE_WORLD_OUTDOOR_LOOKUP_MATRIX = 0xF2,
-        CONST_SRC_TOTAL_COUNT = 0xF3,
-        CONST_SRC_NONE = 0xF4,
+        CONST_SRC_CODE_LIGHT_SPECULAR = 0x2,
+        CONST_SRC_CODE_LIGHT_SPOTDIR = 0x3,
+        CONST_SRC_CODE_LIGHT_SPOTFACTORS = 0x4,
+        CONST_SRC_CODE_NEARPLANE_ORG = 0x5,
+        CONST_SRC_CODE_NEARPLANE_DX = 0x6,
+        CONST_SRC_CODE_NEARPLANE_DY = 0x7,
+        CONST_SRC_CODE_SHADOW_PARMS = 0x8,
+        CONST_SRC_CODE_SHADOWMAP_POLYGON_OFFSET = 0x9,
+        CONST_SRC_CODE_RENDER_TARGET_SIZE = 0xA,
+        CONST_SRC_CODE_LIGHT_FALLOFF_PLACEMENT = 0xB,
+        CONST_SRC_CODE_DOF_EQUATION_VIEWMODEL_AND_FAR_BLUR = 0xC,
+        CONST_SRC_CODE_DOF_EQUATION_SCENE = 0xD,
+        CONST_SRC_CODE_DOF_LERP_SCALE = 0xE,
+        CONST_SRC_CODE_DOF_LERP_BIAS = 0xF,
+        CONST_SRC_CODE_DOF_ROW_DELTA = 0x10,
+        CONST_SRC_CODE_PARTICLE_CLOUD_COLOR = 0x11,
+        CONST_SRC_CODE_GAMETIME = 0x12,
+
+        CONST_SRC_CODE_MAYBE_DIRTY_PS_END = 0x13,
+        CONST_SRC_CODE_ALWAYS_DIRTY_PS_BEGIN = 0x13,
+
+        CONST_SRC_CODE_PIXEL_COST_FRACS = 0x13,
+        CONST_SRC_CODE_PIXEL_COST_DECODE = 0x14,
+        CONST_SRC_CODE_FILTER_TAP_0 = 0x15,
+        CONST_SRC_CODE_FILTER_TAP_1 = 0x16,
+        CONST_SRC_CODE_FILTER_TAP_2 = 0x17,
+        CONST_SRC_CODE_FILTER_TAP_3 = 0x18,
+        CONST_SRC_CODE_FILTER_TAP_4 = 0x19,
+        CONST_SRC_CODE_FILTER_TAP_5 = 0x1A,
+        CONST_SRC_CODE_FILTER_TAP_6 = 0x1B,
+        CONST_SRC_CODE_FILTER_TAP_7 = 0x1C,
+        CONST_SRC_CODE_COLOR_MATRIX_R = 0x1D,
+        CONST_SRC_CODE_COLOR_MATRIX_G = 0x1E,
+        CONST_SRC_CODE_COLOR_MATRIX_B = 0x1F,
+
+        CONST_SRC_CODE_ALWAYS_DIRTY_PS_END = 0x20,
+        CONST_SRC_CODE_NEVER_DIRTY_PS_BEGIN = 0x20,
+
+        CONST_SRC_CODE_SHADOWMAP_SWITCH_PARTITION = 0x20,
+        CONST_SRC_CODE_SHADOWMAP_SCALE = 0x21,
+        CONST_SRC_CODE_ZNEAR = 0x22,
+        CONST_SRC_CODE_SUN_POSITION = 0x23,
+        CONST_SRC_CODE_SUN_DIFFUSE = 0x24,
+        CONST_SRC_CODE_SUN_SPECULAR = 0x25,
+        CONST_SRC_CODE_LIGHTING_LOOKUP_SCALE = 0x26,
+        CONST_SRC_CODE_DEBUG_BUMPMAP = 0x27,
+        CONST_SRC_CODE_MATERIAL_COLOR = 0x28,
+        CONST_SRC_CODE_FOG = 0x29,
+        CONST_SRC_CODE_FOG_COLOR = 0x2A,
+        CONST_SRC_CODE_GLOW_SETUP = 0x2B,
+        CONST_SRC_CODE_GLOW_APPLY = 0x2C,
+        CONST_SRC_CODE_COLOR_BIAS = 0x2D,
+        CONST_SRC_CODE_COLOR_TINT_BASE = 0x2E,
+        CONST_SRC_CODE_COLOR_TINT_DELTA = 0x2F,
+        CONST_SRC_CODE_OUTDOOR_FEATHER_PARMS = 0x30,
+        CONST_SRC_CODE_ENVMAP_PARMS = 0x31,
+        CONST_SRC_CODE_SPOT_SHADOWMAP_PIXEL_ADJUST = 0x32,
+        CONST_SRC_CODE_CLIP_SPACE_LOOKUP_SCALE = 0x33,
+        CONST_SRC_CODE_CLIP_SPACE_LOOKUP_OFFSET = 0x34,
+        CONST_SRC_CODE_PARTICLE_CLOUD_MATRIX = 0x35,
+        CONST_SRC_CODE_DEPTH_FROM_CLIP = 0x36,
+        CONST_SRC_CODE_CODE_MESH_ARG_0 = 0x37,
+        CONST_SRC_CODE_CODE_MESH_ARG_1 = 0x38,
+
+        CONST_SRC_CODE_CODE_MESH_ARG_LAST = 0x38,
+
+        CONST_SRC_CODE_BASE_LIGHTING_COORDS = 0x39,
+
+        CONST_SRC_CODE_NEVER_DIRTY_PS_END = 0x3A,
+        CONST_SRC_CODE_COUNT_FLOAT4 = 0x3A,
+        CONST_SRC_FIRST_CODE_MATRIX = 0x3A,
+
+        CONST_SRC_CODE_WORLD_MATRIX = 0x3A,
+        CONST_SRC_CODE_INVERSE_WORLD_MATRIX = 0x3B,
+        CONST_SRC_CODE_TRANSPOSE_WORLD_MATRIX = 0x3C,
+        CONST_SRC_CODE_INVERSE_TRANSPOSE_WORLD_MATRIX = 0x3D,
+        CONST_SRC_CODE_VIEW_MATRIX = 0x3E,
+        CONST_SRC_CODE_INVERSE_VIEW_MATRIX = 0x3F,
+        CONST_SRC_CODE_TRANSPOSE_VIEW_MATRIX = 0x40,
+        CONST_SRC_CODE_INVERSE_TRANSPOSE_VIEW_MATRIX = 0x41,
+        CONST_SRC_CODE_PROJECTION_MATRIX = 0x42,
+        CONST_SRC_CODE_INVERSE_PROJECTION_MATRIX = 0x43,
+        CONST_SRC_CODE_TRANSPOSE_PROJECTION_MATRIX = 0x44,
+        CONST_SRC_CODE_INVERSE_TRANSPOSE_PROJECTION_MATRIX = 0x45,
+        CONST_SRC_CODE_WORLD_VIEW_MATRIX = 0x46,
+        CONST_SRC_CODE_INVERSE_WORLD_VIEW_MATRIX = 0x47,
+        CONST_SRC_CODE_TRANSPOSE_WORLD_VIEW_MATRIX = 0x48,
+        CONST_SRC_CODE_INVERSE_TRANSPOSE_WORLD_VIEW_MATRIX = 0x49,
+        CONST_SRC_CODE_VIEW_PROJECTION_MATRIX = 0x4A,
+        CONST_SRC_CODE_INVERSE_VIEW_PROJECTION_MATRIX = 0x4B,
+        CONST_SRC_CODE_TRANSPOSE_VIEW_PROJECTION_MATRIX = 0x4C,
+        CONST_SRC_CODE_INVERSE_TRANSPOSE_VIEW_PROJECTION_MATRIX = 0x4D,
+        CONST_SRC_CODE_WORLD_VIEW_PROJECTION_MATRIX = 0x4E,
+        CONST_SRC_CODE_INVERSE_WORLD_VIEW_PROJECTION_MATRIX = 0x4F,
+        CONST_SRC_CODE_TRANSPOSE_WORLD_VIEW_PROJECTION_MATRIX = 0x50,
+        CONST_SRC_CODE_INVERSE_TRANSPOSE_WORLD_VIEW_PROJECTION_MATRIX = 0x51,
+        CONST_SRC_CODE_SHADOW_LOOKUP_MATRIX = 0x52,
+        CONST_SRC_CODE_INVERSE_SHADOW_LOOKUP_MATRIX = 0x53,
+        CONST_SRC_CODE_TRANSPOSE_SHADOW_LOOKUP_MATRIX = 0x54,
+        CONST_SRC_CODE_INVERSE_TRANSPOSE_SHADOW_LOOKUP_MATRIX = 0x55,
+        CONST_SRC_CODE_WORLD_OUTDOOR_LOOKUP_MATRIX = 0x56,
+        CONST_SRC_CODE_INVERSE_WORLD_OUTDOOR_LOOKUP_MATRIX = 0x57,
+        CONST_SRC_CODE_TRANSPOSE_WORLD_OUTDOOR_LOOKUP_MATRIX = 0x58,
+        CONST_SRC_CODE_INVERSE_TRANSPOSE_WORLD_OUTDOOR_LOOKUP_MATRIX = 0x59,
+
+        CONST_SRC_TOTAL_COUNT,
+        CONST_SRC_NONE
+    };
+
+    enum MaterialTextureSource
+    {
+        TEXTURE_SRC_CODE_BLACK = 0x0,
+        TEXTURE_SRC_CODE_WHITE = 0x1,
+        TEXTURE_SRC_CODE_IDENTITY_NORMAL_MAP = 0x2,
+        TEXTURE_SRC_CODE_MODEL_LIGHTING = 0x3,
+        TEXTURE_SRC_CODE_LIGHTMAP_PRIMARY = 0x4,
+        TEXTURE_SRC_CODE_LIGHTMAP_SECONDARY = 0x5,
+        TEXTURE_SRC_CODE_SHADOWCOOKIE = 0x6,
+        TEXTURE_SRC_CODE_SHADOWMAP_SUN = 0x7,
+        TEXTURE_SRC_CODE_SHADOWMAP_SPOT = 0x8,
+        TEXTURE_SRC_CODE_FEEDBACK = 0x9,
+        TEXTURE_SRC_CODE_RESOLVED_POST_SUN = 0xA,
+        TEXTURE_SRC_CODE_RESOLVED_SCENE = 0xB,
+        TEXTURE_SRC_CODE_POST_EFFECT_0 = 0xC,
+        TEXTURE_SRC_CODE_POST_EFFECT_1 = 0xD,
+        TEXTURE_SRC_CODE_SKY = 0xE,
+        TEXTURE_SRC_CODE_LIGHT_ATTENUATION = 0xF,
+        TEXTURE_SRC_CODE_DYNAMIC_SHADOWS = 0x10,
+        TEXTURE_SRC_CODE_OUTDOOR = 0x11,
+        TEXTURE_SRC_CODE_FLOATZ = 0x12,
+        TEXTURE_SRC_CODE_PROCESSED_FLOATZ = 0x13,
+        TEXTURE_SRC_CODE_RAW_FLOATZ = 0x14,
+        TEXTURE_SRC_CODE_CASE_TEXTURE = 0x15,
+        TEXTURE_SRC_CODE_CINEMATIC_Y = 0x16,
+        TEXTURE_SRC_CODE_CINEMATIC_CR = 0x17,
+        TEXTURE_SRC_CODE_CINEMATIC_CB = 0x18,
+        TEXTURE_SRC_CODE_CINEMATIC_A = 0x19,
+        TEXTURE_SRC_CODE_REFLECTION_PROBE = 0x1A,
+
+        TEXTURE_SRC_CODE_COUNT
+    };
+
+    enum CustomSamplers
+    {
+        CUSTOM_SAMPLER_REFLECTION_PROBE = 0x0,
+        CUSTOM_SAMPLER_LIGHTMAP_PRIMARY = 0x1,
+        CUSTOM_SAMPLER_LIGHTMAP_SECONDARY = 0x2,
+
+        CUSTOM_SAMPLER_COUNT
+    };
+
+    enum MaterialUpdateFrequency
+    {
+        MTL_UPDATE_PER_PRIM = 0x0,
+        MTL_UPDATE_PER_OBJECT = 0x1,
+        MTL_UPDATE_RARELY = 0x2,
+        MTL_UPDATE_CUSTOM = 0x3,
     };
 
     struct MaterialShaderArgument
@@ -1179,10 +1230,12 @@ namespace IW3
         STREAM_SRC_COLOR = 0x1,
         STREAM_SRC_TEXCOORD_0 = 0x2,
         STREAM_SRC_NORMAL = 0x3,
+
+        STREAM_SRC_PRE_OPTIONAL_BEGIN = 0x4,
+
         STREAM_SRC_TANGENT = 0x4,
 
         STREAM_SRC_OPTIONAL_BEGIN = 0x5,
-        STREAM_SRC_PRE_OPTIONAL_BEGIN = 0x4,
 
         STREAM_SRC_TEXCOORD_1 = 0x5,
         STREAM_SRC_TEXCOORD_2 = 0x6,
@@ -1215,15 +1268,37 @@ namespace IW3
         unsigned char dest;
     };
 
+    enum MaterialVertexDeclType
+    {
+        VERTDECL_GENERIC = 0x0,
+        VERTDECL_PACKED = 0x1,
+        VERTDECL_WORLD = 0x2,
+        VERTDECL_WORLD_T1N0 = 0x3,
+        VERTDECL_WORLD_T1N1 = 0x4,
+        VERTDECL_WORLD_T2N0 = 0x5,
+        VERTDECL_WORLD_T2N1 = 0x6,
+        VERTDECL_WORLD_T2N2 = 0x7,
+        VERTDECL_WORLD_T3N0 = 0x8,
+        VERTDECL_WORLD_T3N1 = 0x9,
+        VERTDECL_WORLD_T3N2 = 0xA,
+        VERTDECL_WORLD_T4N0 = 0xB,
+        VERTDECL_WORLD_T4N1 = 0xC,
+        VERTDECL_WORLD_T4N2 = 0xD,
+        VERTDECL_POS_TEX = 0xE,
+        VERTDECL_STATICMODELCACHE = 0xF,
+
+        VERTDECL_COUNT
+    };
+
     struct MaterialVertexStreamRouting
     {
         MaterialStreamRouting data[16];
-        void /*IDirect3DVertexDeclaration9*/* decl[16];
+        void /*IDirect3DVertexDeclaration9*/* decl[VERTDECL_COUNT];
     };
 
     struct MaterialVertexDeclaration
     {
-        char streamCount;
+        unsigned char streamCount;
         bool hasOptionalSource;
         bool isLoaded;
         MaterialVertexStreamRouting routing;
@@ -1277,6 +1352,18 @@ namespace IW3
         char stableArgCount;
         char customSamplerFlags;
         MaterialShaderArgument* args;
+    };
+
+    enum TechniqueFlags
+    {
+        MTL_TECHFLAG_NEEDS_RESOLVED_POST_SUN = 0x1,
+        MTL_TECHFLAG_NEEDS_RESOLVED_SCENE = 0x2,
+        MTL_TECHFLAG_ZPREPASS = 0x4,
+
+        MTL_TECHFLAG_DECL_HAS_OPTIONAL_SOURCE = 0x8,
+
+        MTL_TECHFLAG_USES_LIGHT_SPOT_FACTORS = 0x10,
+        MTL_TECHFLAG_USES_FLOATZ = 0x20,
     };
 
     struct MaterialTechnique
@@ -1334,10 +1421,26 @@ namespace IW3
         TECHNIQUE_NONE = 0x24,
     };
 
+    enum MaterialWorldVertexFormat : unsigned char
+    {
+        MTL_WORLDVERT_TEX_1_NRM_1 = 0x0,
+        MTL_WORLDVERT_TEX_2_NRM_1 = 0x1,
+        MTL_WORLDVERT_TEX_2_NRM_2 = 0x2,
+        MTL_WORLDVERT_TEX_3_NRM_1 = 0x3,
+        MTL_WORLDVERT_TEX_3_NRM_2 = 0x4,
+        MTL_WORLDVERT_TEX_3_NRM_3 = 0x5,
+        MTL_WORLDVERT_TEX_4_NRM_1 = 0x6,
+        MTL_WORLDVERT_TEX_4_NRM_2 = 0x7,
+        MTL_WORLDVERT_TEX_4_NRM_3 = 0x8,
+        MTL_WORLDVERT_TEX_5_NRM_1 = 0x9,
+        MTL_WORLDVERT_TEX_5_NRM_2 = 0xA,
+        MTL_WORLDVERT_TEX_5_NRM_3 = 0xB,
+    };
+
     struct MaterialTechniqueSet
     {
         const char* name;
-        char worldVertFormat;
+        MaterialWorldVertexFormat worldVertFormat;
         bool hasBeenUploaded;
         char unused[1];
         MaterialTechniqueSet* remappedTechniqueSet;
@@ -1381,7 +1484,8 @@ namespace IW3
         MAPTYPE_2D = 0x3,
         MAPTYPE_3D = 0x4,
         MAPTYPE_CUBE = 0x5,
-        MAPTYPE_COUNT = 0x6,
+
+        MAPTYPE_COUNT
     };
 
     enum TextureSemantic
@@ -1657,7 +1761,7 @@ namespace IW3
         unsigned int numsides;
         cbrushside_t* sides;
         int16_t axialMaterialNum[2][3];
-        char* baseAdjacentSide;
+        cbrushedge_t* baseAdjacentSide;
         int16_t firstAdjacentSideOffsets[2][3];
         char edgeCount[2][3];
     };
@@ -2301,7 +2405,7 @@ namespace IW3
         unsigned int dynEntClientWordCount[2];
         unsigned int dynEntClientCount[2];
         unsigned int* dynEntCellBits[2];
-        char* dynEntVisData[2][3];
+        raw_byte16* dynEntVisData[2][3];
     };
 
     struct GfxWorldStreamInfo
@@ -2373,9 +2477,9 @@ namespace IW3
         uint16_t letter;
         char x0;
         char y0;
-        char dx;
-        char pixelWidth;
-        char pixelHeight;
+        unsigned char dx;
+        unsigned char pixelWidth;
+        unsigned char pixelHeight;
         float s0;
         float t0;
         float s1;
@@ -2409,6 +2513,37 @@ namespace IW3
         int vertAlign;
     };
 
+    enum WindowDefStaticFlag : unsigned int
+    {
+        WINDOW_FLAG_DECORATION = 0x100000,
+        WINDOW_FLAG_HORIZONTAL_SCROLL = 0x200000,
+        WINDOW_FLAG_AUTO_WRAPPED = 0x800000,
+        WINDOW_FLAG_POPUP = 0x1000000,
+        WINDOW_FLAG_OUT_OF_BOUNDS_CLICK = 0x2000000,
+        WINDOW_FLAG_LEGACY_SPLIT_SCREEN_SCALE = 0x4000000,
+        WINDOW_FLAG_HIDDEN_DURING_FLASH_BANG = 0x10000000,
+        WINDOW_FLAG_HIDDEN_DURING_SCOPE = 0x20000000,
+        WINDOW_FLAG_HIDDEN_DURING_UI = 0x40000000,
+    };
+
+    enum WindowDefDynamicFlag : unsigned int
+    {
+        WINDOW_FLAG_1 = 0x1,
+        WINDOW_FLAG_FOCUSED = 0x2,
+        WINDOW_FLAG_VISIBLE = 0x4,
+        WINDOW_FLAG_FADING_OUT = 0x10,
+        WINDOW_FLAG_FADING_IN = 0x20,
+        WINDOW_FLAG_HOVERED = 0x40,
+        WINDOW_FLAG_LISTBOX_HOVER_100 = 0x100,
+        WINDOW_FLAG_LISTBOX_HOVER_200 = 0x200,
+        WINDOW_FLAG_LISTBOX_HOVER_400 = 0x400,
+        WINDOW_FLAG_LISTBOX_HOVER_800 = 0x800,
+        WINDOW_FLAG_LISTBOX_HOVER_1000 = 0x1000,
+        WINDOW_FLAG_4000 = 0x4000,
+        WINDOW_FLAG_NON_DEFAULT_BACKCOLOR = 0x8000,
+        WINDOW_FLAG_NON_DEFAULT_FORECOLOR = 0x10000,
+    };
+
     struct windowDef_t
     {
         const char* name;
@@ -2418,10 +2553,10 @@ namespace IW3
         int style;
         int border;
         int ownerDraw;
-        int ownerDrawFlags;
+        unsigned int ownerDrawFlags;
         float borderSize;
-        int staticFlags;
-        int dynamicFlags[1];
+        unsigned int staticFlags;
+        unsigned int dynamicFlags[1];
         int nextTime;
         float foreColor[4];
         float backColor[4];
@@ -2457,10 +2592,99 @@ namespace IW3
         operandInternalDataUnion internals;
     };
 
+    enum operationEnum : int
+    {
+        OP_NOOP,
+        OP_RIGHTPAREN,
+        OP_MULTIPLY,
+        OP_DIVIDE,
+        OP_MODULUS,
+        OP_ADD,
+        OP_SUBTRACT,
+        OP_NOT,
+        OP_LESSTHAN,
+        OP_LESSTHANEQUALTO,
+        OP_GREATERTHAN,
+        OP_GREATERTHANEQUALTO,
+        OP_EQUALS,
+        OP_NOTEQUAL,
+        OP_AND,
+        OP_OR,
+        OP_LEFTPAREN,
+        OP_COMMA,
+        OP_BITWISEAND,
+        OP_BITWISEOR,
+        OP_BITWISENOT,
+        OP_BITSHIFTLEFT,
+        OP_BITSHIFTRIGHT,
+
+        OP_FIRSTFUNCTIONCALL,
+        OP_SIN = OP_FIRSTFUNCTIONCALL,
+        OP_COS,
+        OP_MIN,
+        OP_MAX,
+        OP_MILLISECONDS,
+        OP_DVARINT,
+        OP_DVARBOOL,
+        OP_DVARFLOAT,
+        OP_DVARSTRING,
+        OP_STAT,
+        OP_UIACTIVE,
+        OP_FLASHBANGED,
+        OP_SCOPED,
+        OP_SCOREBOARDVISIBLE,
+        OP_INKILLCAM,
+        OP_PLAYERFIELD,
+        OP_SELECTINGLOCATION,
+        OP_TEAMFIELD,
+        OP_OTHERTEAMFIELD,
+        OP_MARINESFIELD,
+        OP_OPFORFIELD,
+        OP_MENUISOPEN,
+        OP_WRITINGDATA,
+        OP_INLOBBY,
+        OP_INPRIVATEPARTY,
+        OP_PRIVATEPARTYHOST,
+        OP_PRIVATEPARTYHOSTINLOBBY,
+        OP_ALONEINPARTY,
+        OP_ADSJAVELIN,
+        OP_WEAPLOCKBLINK,
+        OP_WEAPATTACKTOP,
+        OP_WEAPATTACKDIRECT,
+        OP_SECONDSASTIME,
+        OP_TABLELOOKUP,
+        OP_LOCALIZESTRING,
+        OP_LOCALVARINT,
+        OP_LOCALVARBOOL,
+        OP_LOCALVARFLOAT,
+        OP_LOCALVARSTRING,
+        OP_TIMELEFT,
+        OP_SECONDSASCOUNTDOWN,
+        OP_GAMEMSGWNDACTIVE,
+        OP_TOINT,
+        OP_TOSTRING,
+        OP_TOFLOAT,
+        OP_GAMETYPENAME,
+        OP_GAMETYPE,
+        OP_GAMETYPEDESCRIPTION,
+        OP_SCORE,
+        OP_FRIENDSONLINE,
+        OP_FOLLOWING,
+        OP_STATRANGEBITSSET,
+        OP_KEYBINDING,
+        OP_ACTIONSLOTUSABLE,
+        OP_HUDFADE,
+        OP_MAXPLAYERS,
+        OP_ACCEPTINGINVITE,
+        OP_ISINTERMISSION,
+
+        NUM_OPERATORS,
+    };
+
     union entryInternalData
     {
-        int op;
         Operand operand;
+        operationEnum op;
     };
 
     enum expressionEntryType : int
@@ -2500,7 +2724,7 @@ namespace IW3
         int elementStyle;
         int numColumns;
         columnInfo_s columnInfo[16];
-        const char* doubleClick;
+        const char* onDoubleClick;
         int notselectable;
         int noScrollBars;
         int usePaging;
@@ -2563,6 +2787,15 @@ namespace IW3
         ITEM_TYPE_GAME_MESSAGE_WINDOW = 0x13
     };
 
+    enum ItemDefDvarFlag
+    {
+        ITEM_DVAR_FLAG_ENABLE = 0x1,
+        ITEM_DVAR_FLAG_DISABLE = 0x2,
+        ITEM_DVAR_FLAG_SHOW = 0x4,
+        ITEM_DVAR_FLAG_HIDE = 0x8,
+        ITEM_DVAR_FLAG_FOCUS = 0x10,
+    };
+
     struct itemDef_s
     {
         windowDef_t window;
@@ -2579,7 +2812,7 @@ namespace IW3
         int gameMsgWindowIndex;
         int gameMsgWindowMode;
         const char* text;
-        int itemFlags;
+        unsigned int itemFlags;
         menuDef_t* parent;
         const char* mouseEnterText;
         const char* mouseExitText;
@@ -2649,7 +2882,8 @@ namespace IW3
         WEAPTYPE_GRENADE = 0x1,
         WEAPTYPE_PROJECTILE = 0x2,
         WEAPTYPE_BINOCULARS = 0x3,
-        WEAPTYPE_NUM = 0x4,
+
+        WEAPTYPE_NUM,
     };
 
     enum weapClass_t
@@ -2664,7 +2898,8 @@ namespace IW3
         WEAPCLASS_TURRET = 0x7,
         WEAPCLASS_NON_PLAYER = 0x8,
         WEAPCLASS_ITEM = 0x9,
-        WEAPCLASS_NUM = 0xA,
+
+        WEAPCLASS_NUM,
     };
 
     enum PenetrateType
@@ -2673,7 +2908,8 @@ namespace IW3
         PENETRATE_TYPE_SMALL = 0x1,
         PENETRATE_TYPE_MEDIUM = 0x2,
         PENETRATE_TYPE_LARGE = 0x3,
-        PENETRATE_TYPE_COUNT = 0x4,
+
+        PENETRATE_TYPE_NUM,
     };
 
     enum ImpactType
@@ -2687,7 +2923,8 @@ namespace IW3
         IMPACT_TYPE_GRENADE_EXPLODE = 0x6,
         IMPACT_TYPE_ROCKET_EXPLODE = 0x7,
         IMPACT_TYPE_PROJECTILE_DUD = 0x8,
-        IMPACT_TYPE_COUNT = 0x9,
+
+        IMPACT_TYPE_NUM,
     };
 
     enum weapInventoryType_t
@@ -2696,7 +2933,8 @@ namespace IW3
         WEAPINVENTORY_OFFHAND = 0x1,
         WEAPINVENTORY_ITEM = 0x2,
         WEAPINVENTORY_ALTMODE = 0x3,
-        WEAPINVENTORYCOUNT = 0x4,
+
+        WEAPINVENTORY_NUM,
     };
 
     enum weapFireType_t
@@ -2706,7 +2944,8 @@ namespace IW3
         WEAPON_FIRETYPE_BURSTFIRE2 = 0x2,
         WEAPON_FIRETYPE_BURSTFIRE3 = 0x3,
         WEAPON_FIRETYPE_BURSTFIRE4 = 0x4,
-        WEAPON_FIRETYPECOUNT = 0x5,
+
+        WEAPON_FIRETYPE_NUM,
     };
 
     enum OffhandClass
@@ -2715,7 +2954,8 @@ namespace IW3
         OFFHAND_CLASS_FRAG_GRENADE = 0x1,
         OFFHAND_CLASS_SMOKE_GRENADE = 0x2,
         OFFHAND_CLASS_FLASH_GRENADE = 0x3,
-        OFFHAND_CLASS_COUNT = 0x4,
+
+        OFFHAND_CLASS_NUM,
     };
 
     enum weapStance_t
@@ -2723,7 +2963,8 @@ namespace IW3
         WEAPSTANCE_STAND = 0x0,
         WEAPSTANCE_DUCK = 0x1,
         WEAPSTANCE_PRONE = 0x2,
-        WEAPSTANCE_NUM = 0x3,
+
+        WEAPSTANCE_NUM,
     };
 
     enum activeReticleType_t
@@ -2731,7 +2972,8 @@ namespace IW3
         VEH_ACTIVE_RETICLE_NONE = 0x0,
         VEH_ACTIVE_RETICLE_PIP_ON_A_STICK = 0x1,
         VEH_ACTIVE_RETICLE_BOUNCING_DIAMOND = 0x2,
-        VEH_ACTIVE_RETICLE_COUNT = 0x3,
+
+        VEH_ACTIVE_RETICLE_NUM,
     };
 
     enum weaponIconRatioType_t
@@ -2739,7 +2981,8 @@ namespace IW3
         WEAPON_ICON_RATIO_1TO1 = 0x0,
         WEAPON_ICON_RATIO_2TO1 = 0x1,
         WEAPON_ICON_RATIO_4TO1 = 0x2,
-        WEAPON_ICON_RATIO_COUNT = 0x3,
+
+        WEAPON_ICON_RATIO_NUM,
     };
 
     enum ammoCounterClipType_t
@@ -2751,22 +2994,25 @@ namespace IW3
         AMMO_COUNTER_CLIP_ROCKET = 0x4,
         AMMO_COUNTER_CLIP_BELTFED = 0x5,
         AMMO_COUNTER_CLIP_ALTWEAPON = 0x6,
-        AMMO_COUNTER_CLIP_COUNT = 0x7,
+
+        AMMO_COUNTER_CLIP_NUM,
     };
 
     enum weapOverlayReticle_t
     {
         WEAPOVERLAYRETICLE_NONE = 0x0,
         WEAPOVERLAYRETICLE_CROSSHAIR = 0x1,
-        WEAPOVERLAYRETICLE_NUM = 0x2,
+
+        WEAPOVERLAYRETICLE_NUM,
     };
 
-    enum WeapOverlayInteface_t
+    enum WeapOverlayInterface_t
     {
         WEAPOVERLAYINTERFACE_NONE = 0x0,
         WEAPOVERLAYINTERFACE_JAVELIN = 0x1,
         WEAPOVERLAYINTERFACE_TURRETSCOPE = 0x2,
-        WEAPOVERLAYINTERFACECOUNT = 0x3,
+
+        WEAPOVERLAYINTERFACE_NUM,
     };
 
     enum weapProjExposion_t
@@ -2778,7 +3024,8 @@ namespace IW3
         WEAPPROJEXP_DUD = 0x4,
         WEAPPROJEXP_SMOKE = 0x5,
         WEAPPROJEXP_HEAVY = 0x6,
-        WEAPPROJEXP_NUM = 0x7,
+
+        WEAPPROJEXP_NUM,
     };
 
     enum WeapStickinessType
@@ -2787,7 +3034,8 @@ namespace IW3
         WEAPSTICKINESS_ALL = 0x1,
         WEAPSTICKINESS_GROUND = 0x2,
         WEAPSTICKINESS_GROUND_WITH_YAW = 0x3,
-        WEAPSTICKINESS_COUNT = 0x4,
+
+        WEAPSTICKINESS_NUM,
     };
 
     enum guidedMissileType_t
@@ -2796,7 +3044,72 @@ namespace IW3
         MISSILE_GUIDANCE_SIDEWINDER = 0x1,
         MISSILE_GUIDANCE_HELLFIRE = 0x2,
         MISSILE_GUIDANCE_JAVELIN = 0x3,
-        MISSILE_GUIDANCE_COUNT = 0x4,
+
+        MISSILE_GUIDANCE_NUM,
+    };
+
+    enum WeaponAnimSlot
+    {
+        WEAP_ANIM_ROOT = 0x0,
+        WEAP_ANIM_IDLE = 0x1,
+        WEAP_ANIM_EMPTY_IDLE = 0x2,
+        WEAP_ANIM_FIRE = 0x3,
+        WEAP_ANIM_HOLD_FIRE = 0x4,
+        WEAP_ANIM_LASTSHOT = 0x5,
+        WEAP_ANIM_RECHAMBER = 0x6,
+        WEAP_ANIM_MELEE = 0x7,
+        WEAP_ANIM_MELEE_CHARGE = 0x8,
+        WEAP_ANIM_RELOAD = 0x9,
+        WEAP_ANIM_RELOAD_EMPTY = 0xA,
+        WEAP_ANIM_RELOAD_START = 0xB,
+        WEAP_ANIM_RELOAD_END = 0xC,
+        WEAP_ANIM_RAISE = 0xD,
+        WEAP_ANIM_FIRST_RAISE = 0xE,
+        WEAP_ANIM_DROP = 0xF,
+        WEAP_ANIM_ALT_RAISE = 0x10,
+        WEAP_ANIM_ALT_DROP = 0x11,
+        WEAP_ANIM_QUICK_RAISE = 0x12,
+        WEAP_ANIM_QUICK_DROP = 0x13,
+        WEAP_ANIM_EMPTY_RAISE = 0x14,
+        WEAP_ANIM_EMPTY_DROP = 0x15,
+        WEAP_ANIM_SPRINT_IN = 0x16,
+        WEAP_ANIM_SPRINT_LOOP = 0x17,
+        WEAP_ANIM_SPRINT_OUT = 0x18,
+        WEAP_ANIM_DETONATE = 0x19,
+        WEAP_ANIM_NIGHTVISION_WEAR = 0x1A,
+        WEAP_ANIM_NIGHTVISION_REMOVE = 0x1B,
+        WEAP_ANIM_ADS_FIRE = 0x1C,
+        WEAP_ANIM_ADS_LASTSHOT = 0x1D,
+        WEAP_ANIM_ADS_RECHAMBER = 0x1E,
+        WEAP_ANIM_ADS_UP = 0x1F,
+        WEAP_ANIM_ADS_DOWN = 0x20,
+
+        NUM_WEAP_ANIMS,
+    };
+
+    enum hitLocation_t
+    {
+        HITLOC_NONE = 0x0,
+        HITLOC_HELMET = 0x1,
+        HITLOC_HEAD = 0x2,
+        HITLOC_NECK = 0x3,
+        HITLOC_TORSO_UPR = 0x4,
+        HITLOC_TORSO_LWR = 0x5,
+        HITLOC_R_ARM_UPR = 0x6,
+        HITLOC_L_ARM_UPR = 0x7,
+        HITLOC_R_ARM_LWR = 0x8,
+        HITLOC_L_ARM_LWR = 0x9,
+        HITLOC_R_HAND = 0xA,
+        HITLOC_L_HAND = 0xB,
+        HITLOC_R_LEG_UPR = 0xC,
+        HITLOC_L_LEG_UPR = 0xD,
+        HITLOC_R_LEG_LWR = 0xE,
+        HITLOC_L_LEG_LWR = 0xF,
+        HITLOC_R_FOOT = 0x10,
+        HITLOC_L_FOOT = 0x11,
+        HITLOC_GUN = 0x12,
+
+        HITLOC_COUNT,
     };
 
     struct snd_alias_list_name
@@ -2988,7 +3301,7 @@ namespace IW3
         Material* overlayMaterial;
         Material* overlayMaterialLowRes;
         weapOverlayReticle_t overlayReticle;
-        WeapOverlayInteface_t overlayInterface;
+        WeapOverlayInterface_t overlayInterface;
         float overlayWidth;
         float overlayHeight;
         float fAdsBobFactor;
@@ -3268,20 +3581,21 @@ namespace IW3
 
     enum FxElemType
     {
-        FX_ELEM_TYPE_SPRITE_BILLBOARD = 0x0,
-        FX_ELEM_TYPE_SPRITE_ORIENTED = 0x1,
-        FX_ELEM_TYPE_TAIL = 0x2,
-        FX_ELEM_TYPE_TRAIL = 0x3,
-        FX_ELEM_TYPE_CLOUD = 0x4,
-        FX_ELEM_TYPE_MODEL = 0x5,
-        FX_ELEM_TYPE_OMNI_LIGHT = 0x6,
-        FX_ELEM_TYPE_SPOT_LIGHT = 0x7,
-        FX_ELEM_TYPE_SOUND = 0x8,
-        FX_ELEM_TYPE_DECAL = 0x9,
-        FX_ELEM_TYPE_RUNNER = 0xA,
-        FX_ELEM_TYPE_COUNT = 0xB,
-        FX_ELEM_TYPE_LAST_SPRITE = 0x3,
-        FX_ELEM_TYPE_LAST_DRAWN = 0x7,
+        FX_ELEM_TYPE_SPRITE_BILLBOARD,
+        FX_ELEM_TYPE_SPRITE_ORIENTED,
+        FX_ELEM_TYPE_TAIL,
+        FX_ELEM_TYPE_TRAIL,
+        FX_ELEM_TYPE_CLOUD,
+        FX_ELEM_TYPE_MODEL,
+        FX_ELEM_TYPE_OMNI_LIGHT,
+        FX_ELEM_TYPE_SPOT_LIGHT,
+        FX_ELEM_TYPE_SOUND,
+        FX_ELEM_TYPE_DECAL,
+        FX_ELEM_TYPE_RUNNER,
+
+        FX_ELEM_TYPE_COUNT,
+        FX_ELEM_TYPE_LAST_SPRITE = FX_ELEM_TYPE_TRAIL,
+        FX_ELEM_TYPE_LAST_DRAWN = FX_ELEM_TYPE_SPOT_LIGHT,
     };
 
     union FxElemVisuals

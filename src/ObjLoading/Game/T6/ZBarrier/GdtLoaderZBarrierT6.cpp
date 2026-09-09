@@ -4,6 +4,7 @@
 #include "Game/T6/T6.h"
 #include "InfoString/InfoString.h"
 #include "InfoStringLoaderZBarrierT6.h"
+#include "Utils/Logging/Log.h"
 
 #include <cstring>
 #include <format>
@@ -24,14 +25,14 @@ namespace
 
         AssetCreationResult CreateAsset(const std::string& assetName, AssetCreationContext& context) override
         {
-            const auto* gdtEntry = m_gdt.GetGdtEntryByGdfAndName(ObjConstants::GDF_FILENAME_ZBARRIER, assetName);
+            const auto* gdtEntry = m_gdt.GetGdtEntryByGdfAndName(GDF_FILENAME_ZBARRIER, assetName);
             if (gdtEntry == nullptr)
                 return AssetCreationResult::NoAction();
 
             InfoString infoString;
             if (!infoString.FromGdtProperties(*gdtEntry))
             {
-                std::cerr << std::format("Failed to read zbarrier gdt entry: \"{}\"\n", assetName);
+                con::error("Failed to read zbarrier gdt entry: \"{}\"", assetName);
                 return AssetCreationResult::Failure();
             }
 
@@ -40,14 +41,14 @@ namespace
 
     private:
         IGdtQueryable& m_gdt;
-        InfoStringLoaderZBarrier m_info_string_loader;
+        z_barrier::InfoStringLoaderT6 m_info_string_loader;
     };
 } // namespace
 
-namespace T6
+namespace z_barrier
 {
-    std::unique_ptr<AssetCreator<AssetZBarrier>> CreateGdtZBarrierLoader(MemoryManager& memory, ISearchPath& searchPath, IGdtQueryable& gdt, Zone& zone)
+    std::unique_ptr<AssetCreator<AssetZBarrier>> CreateGdtLoaderT6(MemoryManager& memory, ISearchPath& searchPath, IGdtQueryable& gdt, Zone& zone)
     {
         return std::make_unique<GdtLoaderZBarrier>(memory, searchPath, gdt, zone);
     }
-} // namespace T6
+} // namespace z_barrier

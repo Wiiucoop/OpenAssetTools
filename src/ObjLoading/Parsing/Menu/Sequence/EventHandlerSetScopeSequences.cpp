@@ -14,7 +14,7 @@
 
 using namespace menu;
 
-namespace menu
+namespace
 {
     enum class ExpectedScriptToken
     {
@@ -31,7 +31,7 @@ namespace menu
         {
         }
 
-        _NODISCARD MatcherFactoryWrapper<SimpleParserValue> ScriptStrictNumeric() const
+        [[nodiscard]] MatcherFactoryWrapper<SimpleParserValue> ScriptStrictNumeric() const
         {
             return And({
                 MatcherFactoryWrapper<SimpleParserValue>(std::make_unique<MenuMatcherScriptNumeric>())
@@ -64,7 +64,7 @@ namespace menu
             });
         }
 
-        _NODISCARD MatcherFactoryWrapper<SimpleParserValue> ScriptNumeric() const
+        [[nodiscard]] MatcherFactoryWrapper<SimpleParserValue> ScriptNumeric() const
         {
             return Or({
                 ScriptStrictNumeric(),
@@ -81,7 +81,7 @@ namespace menu
             });
         }
 
-        _NODISCARD MatcherFactoryWrapper<SimpleParserValue> ScriptStrictInt() const
+        [[nodiscard]] MatcherFactoryWrapper<SimpleParserValue> ScriptStrictInt() const
         {
             return And({
                 MatcherFactoryWrapper<SimpleParserValue>(std::make_unique<MenuMatcherScriptInt>())
@@ -100,7 +100,7 @@ namespace menu
             });
         }
 
-        _NODISCARD MatcherFactoryWrapper<SimpleParserValue> ScriptChar(const char c) const
+        [[nodiscard]] MatcherFactoryWrapper<SimpleParserValue> ScriptChar(const char c) const
         {
             return Or({
                 Char(c),
@@ -118,7 +118,7 @@ namespace menu
             });
         }
 
-        _NODISCARD MatcherFactoryWrapper<SimpleParserValue> ScriptInt() const
+        [[nodiscard]] MatcherFactoryWrapper<SimpleParserValue> ScriptInt() const
         {
             return Or({
                 ScriptStrictInt(),
@@ -136,7 +136,7 @@ namespace menu
             });
         }
 
-        _NODISCARD MatcherFactoryWrapper<SimpleParserValue> ScriptText() const
+        [[nodiscard]] MatcherFactoryWrapper<SimpleParserValue> ScriptText() const
         {
             return Or({
                 Type(SimpleParserValueType::STRING),
@@ -154,12 +154,12 @@ namespace menu
             });
         }
 
-        _NODISCARD MatcherFactoryWrapper<SimpleParserValue> ScriptKeyword(std::string keyword) const
+        [[nodiscard]] MatcherFactoryWrapper<SimpleParserValue> ScriptKeyword(std::string keyword) const
         {
             return KeywordIgnoreCase(std::move(keyword));
         }
 
-        _NODISCARD MatcherFactoryWrapper<SimpleParserValue> ScriptColor() const
+        [[nodiscard]] MatcherFactoryWrapper<SimpleParserValue> ScriptColor() const
         {
             return And({
                 ScriptStrictNumeric(),
@@ -169,7 +169,7 @@ namespace menu
             });
         }
 
-        _NODISCARD MatcherFactoryWrapper<SimpleParserValue> ScriptLocalVarIntOrLiteral() const
+        [[nodiscard]] MatcherFactoryWrapper<SimpleParserValue> ScriptLocalVarIntOrLiteral() const
         {
             return Or({
                 And({
@@ -182,7 +182,7 @@ namespace menu
             });
         }
 
-        _NODISCARD MatcherFactoryWrapper<SimpleParserValue> ScriptLocalVarBoolOrLiteral() const
+        [[nodiscard]] MatcherFactoryWrapper<SimpleParserValue> ScriptLocalVarBoolOrLiteral() const
         {
             return Or({
                 And({
@@ -195,14 +195,9 @@ namespace menu
             });
         }
     };
-} // namespace menu
 
-namespace menu::event_handler_set_scope_sequences
-{
     class SequenceCloseBlock final : public MenuFileParser::sequence_t
     {
-        static constexpr auto CAPTURE_TOKEN = 1;
-
     public:
         SequenceCloseBlock()
         {
@@ -286,7 +281,7 @@ namespace menu::event_handler_set_scope_sequences
             AddMatchers({
                 create
                     .Or({
-                        create.Numeric(),
+                        create.ScriptStrictNumeric(),
                         create.String(),
                         create.Identifier(),
                         create.Type(SimpleParserValueType::CHARACTER),
@@ -922,9 +917,7 @@ namespace menu::event_handler_set_scope_sequences
             });
         }
     };
-} // namespace menu::event_handler_set_scope_sequences
-
-using namespace event_handler_set_scope_sequences;
+} // namespace
 
 EventHandlerSetScopeSequences::EventHandlerSetScopeSequences(std::vector<std::unique_ptr<MenuFileParser::sequence_t>>& allSequences,
                                                              std::vector<MenuFileParser::sequence_t*>& scopeSequences)
@@ -935,6 +928,15 @@ EventHandlerSetScopeSequences::EventHandlerSetScopeSequences(std::vector<std::un
 void EventHandlerSetScopeSequences::AddSequences(const FeatureLevel featureLevel, const bool permissive) const
 {
     AddSequence(std::make_unique<SequenceSkipEmptyStatements>());
+
+    // IW3 and T4 store event handlers as opaque script strings rather than structured handlers.
+    if (featureLevel == FeatureLevel::IW3 || featureLevel == FeatureLevel::T4)
+    {
+        AddSequence(std::make_unique<SequenceCloseBlock>());
+        AddSequence(std::make_unique<SequenceSkipScriptToken>());
+        return;
+    }
+
     // If else and stuff
 
     // Creating factory with no label supplier. Cannot use labels with it.

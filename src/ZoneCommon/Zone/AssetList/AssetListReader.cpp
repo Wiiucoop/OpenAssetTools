@@ -2,7 +2,7 @@
 
 #include "Csv/CsvStream.h"
 #include "Game/IGame.h"
-#include "Zone/AssetNameResolver.h"
+#include "Utils/Logging/Log.h"
 
 #include <format>
 
@@ -11,9 +11,9 @@ namespace
     class AssetListInputStream
     {
     public:
-        AssetListInputStream(std::istream& stream, GameId game)
+        AssetListInputStream(std::istream& stream, const GameId gameId)
             : m_stream(stream),
-              m_asset_name_resolver(IAssetNameResolver::GetResolverForGame(game))
+              m_game(*IGame::GetGameById(gameId))
         {
         }
 
@@ -32,10 +32,10 @@ namespace
                     continue;
 
                 const auto& typeName = row[0];
-                const auto maybeType = m_asset_name_resolver->GetAssetTypeByName(typeName);
+                const auto maybeType = m_game.FindAssetTypeByName(typeName);
                 if (!maybeType)
                 {
-                    std::cerr << std::format("Unknown asset type name \"{}\"\n", typeName);
+                    con::error("Unknown asset type name \"{}\"", typeName);
                     if (failure)
                         *failure = true;
                     return false;
@@ -59,7 +59,7 @@ namespace
 
     private:
         CsvInputStream m_stream;
-        const IAssetNameResolver* m_asset_name_resolver;
+        IGame& m_game;
     };
 } // namespace
 
@@ -90,7 +90,7 @@ std::optional<AssetList> AssetListReader::ReadAssetList(const std::string& zoneN
             return assetList;
     }
     else if (logMissing)
-        std::cerr << std::format("Failed to open file for assetlist: {}\n", assetListFileName);
+        con::error("Failed to open file for assetlist: {}", assetListFileName);
 
     return std::nullopt;
 }

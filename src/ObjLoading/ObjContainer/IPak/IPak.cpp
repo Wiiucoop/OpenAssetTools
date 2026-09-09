@@ -2,13 +2,16 @@
 
 #include "IPakStreamManager.h"
 #include "ObjContainer/IPak/IPakTypes.h"
-#include "zlib.h"
+#include "Utils/Endianness.h"
+#include "Utils/Logging/Log.h"
 
+#include <concepts>
 #include <filesystem>
 #include <format>
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <zlib.h>
 
 namespace fs = std::filesystem;
 
@@ -36,9 +39,10 @@ namespace
             : m_path(std::move(path)),
               m_stream(std::move(stream)),
               m_initialized(false),
+              m_little_endian(true),
               m_index_section(nullptr),
               m_data_section(nullptr),
-              m_stream_manager(*m_stream)
+              m_stream_manager(nullptr)
         {
         }
 
@@ -54,7 +58,7 @@ namespace
             return true;
         }
 
-        [[nodiscard]] std::unique_ptr<iobjstream> GetEntryStream(const Hash nameHash, const Hash dataHash) const override
+        [[nodiscard]] std::unique_ptr<iobjstream> GetEntryStream(const IPakHash nameHash, const IPakHash dataHash) const override
         {
             const IPakIndexEntryKey wantedKey{
                 {.dataHash = dataHash, .nameHash = nameHash}
@@ -64,7 +68,7 @@ namespace
             {
                 if (entry.key.combinedKey == wantedKey.combinedKey)
                 {
-                    return m_stream_manager.OpenStream(static_cast<int64_t>(m_data_section->offset) + entry.offset, entry.size);
+                    return m_stream_manager->OpenStream(static_cast<int64_t>(m_data_section->offset) + entry.offset, entry.size);
                 }
                 else if (entry.key.combinedKey > wantedKey.combinedKey)
                 {
@@ -74,6 +78,11 @@ namespace
             }
 
             return nullptr;
+        }
+
+        [[nodiscard]] const std::vector<IPakIndexEntry>& GetIndexEntries() const override
+        {
+            return m_index_entries;
         }
 
         std::string GetName() override
@@ -92,11 +101,15 @@ namespace
                 m_stream->read(reinterpret_cast<char*>(&indexEntry), sizeof(indexEntry));
                 if (m_stream->gcount() != sizeof(indexEntry))
                 {
-                    std::cerr << std::format("Unexpected eof when trying to load index entry {}.\n", itemIndex);
+                    con::error("Unexpected eof when trying to load index entry {}.", itemIndex);
                     return false;
                 }
 
-                m_index_entries.push_back(indexEntry);
+                SwapBytesIfNecessary(indexEntry.key.combinedKey);
+                SwapBytesIfNecessary(indexEntry.offset);
+                SwapBytesIfNecessary(indexEntry.size);
+
+                m_index_entries.emplace_back(indexEntry);
             }
 
             std::ranges::sort(m_index_entries,
@@ -115,9 +128,14 @@ namespace
             m_stream->read(reinterpret_cast<char*>(&section), sizeof(section));
             if (m_stream->gcount() != sizeof(section))
             {
-                std::cerr << "Unexpected eof when trying to load section.\n";
+                con::error("Unexpected eof when trying to load section.");
                 return false;
             }
+
+            SwapBytesIfNecessary(section.type);
+            SwapBytesIfNecessary(section.offset);
+            SwapBytesIfNecessary(section.size);
+            SwapBytesIfNecessary(section.itemCount);
 
             switch (section.type)
             {
@@ -143,22 +161,35 @@ namespace
             m_stream->read(reinterpret_cast<char*>(&header), sizeof(header));
             if (m_stream->gcount() != sizeof(header))
             {
-                std::cerr << "Unexpected eof when trying to load header.\n";
+                con::error("Unexpected eof when trying to load header.");
                 return false;
             }
 
-            if (header.magic != ipak_consts::IPAK_MAGIC)
+            if (header.magic == ipak_consts::IPAK_MAGIC_LITTLE_ENDIAN)
             {
-                std::cerr << std::format("Invalid ipak magic '{:#x}'.\n", header.magic);
+                m_little_endian = true;
+                m_stream_manager = IPakStreamManager::Create(*m_stream, true);
+            }
+            else if (header.magic == ipak_consts::IPAK_MAGIC_BIG_ENDIAN)
+            {
+                m_little_endian = false;
+                m_stream_manager = IPakStreamManager::Create(*m_stream, false);
+            }
+            else
+            {
+                con::error("Invalid ipak magic '{:#x}'.", header.magic);
                 return false;
             }
 
+            SwapBytesIfNecessary(header.version);
             if (header.version != ipak_consts::IPAK_VERSION)
             {
-                std::cerr << std::format("Unsupported ipak version '{}'.\n", header.version);
+                con::error("Unsupported ipak version '{}'.", header.version);
                 return false;
             }
 
+            SwapBytesIfNecessary(header.size);
+            SwapBytesIfNecessary(header.sectionCount);
             for (unsigned section = 0; section < header.sectionCount; section++)
             {
                 if (!ReadSection())
@@ -167,13 +198,13 @@ namespace
 
             if (m_index_section == nullptr)
             {
-                std::cerr << "IPak does not contain an index section.\n";
+                con::error("IPak does not contain an index section.");
                 return false;
             }
 
             if (m_data_section == nullptr)
             {
-                std::cerr << "IPak does not contain a data section.\n";
+                con::error("IPak does not contain a data section.");
                 return false;
             }
 
@@ -183,17 +214,26 @@ namespace
             return true;
         }
 
+        template<std::integral T> void SwapBytesIfNecessary(T& value)
+        {
+            if (m_little_endian)
+                value = endianness::FromLittleEndian(value);
+            else
+                value = endianness::FromBigEndian(value);
+        }
+
         std::string m_path;
         std::unique_ptr<std::istream> m_stream;
 
         bool m_initialized;
+        bool m_little_endian;
 
         std::unique_ptr<IPakSection> m_index_section;
         std::unique_ptr<IPakSection> m_data_section;
 
         std::vector<IPakIndexEntry> m_index_entries;
 
-        IPakStreamManager m_stream_manager;
+        std::unique_ptr<IPakStreamManager> m_stream_manager;
     };
 } // namespace
 
@@ -202,12 +242,12 @@ std::unique_ptr<IIPak> IIPak::Create(std::string path, std::unique_ptr<std::istr
     return std::make_unique<IPak>(std::move(path), std::move(stream));
 }
 
-IIPak::Hash IIPak::HashString(const std::string& str)
+IPakHash IIPak::HashString(const std::string& str)
 {
     return R_HashString(str.c_str(), 0);
 }
 
-IIPak::Hash IIPak::HashData(const void* data, const size_t dataSize)
+IPakHash IIPak::HashData(const void* data, const size_t dataSize)
 {
     return crc32(0, static_cast<const Bytef*>(data), static_cast<unsigned>(dataSize));
 }

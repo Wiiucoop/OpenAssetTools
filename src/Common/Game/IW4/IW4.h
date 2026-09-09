@@ -11,6 +11,63 @@
 
 namespace IW4
 {
+    enum XAssetType
+    {
+        ASSET_TYPE_PHYSPRESET,
+        ASSET_TYPE_PHYSCOLLMAP,
+        ASSET_TYPE_XANIMPARTS,
+        ASSET_TYPE_XMODEL_SURFS,
+        ASSET_TYPE_XMODEL,
+        ASSET_TYPE_MATERIAL,
+        ASSET_TYPE_PIXELSHADER,
+        ASSET_TYPE_VERTEXSHADER,
+        ASSET_TYPE_VERTEXDECL,
+        ASSET_TYPE_TECHNIQUE_SET,
+        ASSET_TYPE_IMAGE,
+        ASSET_TYPE_SOUND,
+        ASSET_TYPE_SOUND_CURVE,
+        ASSET_TYPE_LOADED_SOUND,
+        ASSET_TYPE_CLIPMAP_SP,
+        ASSET_TYPE_CLIPMAP_MP,
+        ASSET_TYPE_COMWORLD,
+        ASSET_TYPE_GAMEWORLD_SP,
+        ASSET_TYPE_GAMEWORLD_MP,
+        ASSET_TYPE_MAP_ENTS,
+        ASSET_TYPE_FXWORLD,
+        ASSET_TYPE_GFXWORLD,
+        ASSET_TYPE_LIGHT_DEF,
+        ASSET_TYPE_UI_MAP,
+        ASSET_TYPE_FONT,
+        ASSET_TYPE_MENULIST,
+        ASSET_TYPE_MENU,
+        ASSET_TYPE_LOCALIZE_ENTRY,
+        ASSET_TYPE_WEAPON,
+        ASSET_TYPE_SNDDRIVER_GLOBALS,
+        ASSET_TYPE_FX,
+        ASSET_TYPE_IMPACT_FX,
+        ASSET_TYPE_AITYPE,
+        ASSET_TYPE_MPTYPE,
+        ASSET_TYPE_CHARACTER,
+        ASSET_TYPE_XMODELALIAS,
+        ASSET_TYPE_RAWFILE,
+        ASSET_TYPE_STRINGTABLE,
+        ASSET_TYPE_LEADERBOARD,
+        ASSET_TYPE_STRUCTURED_DATA_DEF,
+        ASSET_TYPE_TRACER,
+        ASSET_TYPE_VEHICLE,
+        ASSET_TYPE_ADDON_MAP_ENTS,
+
+        ASSET_TYPE_COUNT
+    };
+
+    enum SubAssetType
+    {
+        SUB_ASSET_TYPE_TECHNIQUE,
+        SUB_ASSET_TYPE_ACCURACY_GRAPH,
+
+        SUB_ASSET_TYPE_COUNT
+    };
+
     struct DB_AuthHash
     {
         char bytes[32];
@@ -130,6 +187,12 @@ namespace IW4
         VFT_NUM,
     };
 
+    struct AccuracyGraph
+    {
+        vec2_t* graphKnots;
+        int graphKnotCount;
+    };
+
     using AssetPhysPreset = Asset<ASSET_TYPE_PHYSPRESET, PhysPreset>;
     using AssetPhysCollMap = Asset<ASSET_TYPE_PHYSCOLLMAP, PhysCollmap>;
     using AssetXAnim = Asset<ASSET_TYPE_XANIMPARTS, XAnimParts>;
@@ -167,6 +230,9 @@ namespace IW4
     using AssetTracer = Asset<ASSET_TYPE_TRACER, TracerDef>;
     using AssetVehicle = Asset<ASSET_TYPE_VEHICLE, VehicleDef>;
     using AssetAddonMapEnts = Asset<ASSET_TYPE_ADDON_MAP_ENTS, AddonMapEnts>;
+
+    using SubAssetTechnique = SubAsset<SUB_ASSET_TYPE_TECHNIQUE, MaterialTechnique>;
+    using SubAssetAccuracyGraph = SubAsset<SUB_ASSET_TYPE_ACCURACY_GRAPH, AccuracyGraph>;
 } // namespace IW4
 
 DEFINE_ASSET_NAME_ACCESSOR(IW4::AssetPhysPreset, name);

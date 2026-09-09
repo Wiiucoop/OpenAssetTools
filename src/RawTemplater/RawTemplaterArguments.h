@@ -17,11 +17,11 @@ class RawTemplaterArguments
     static void PrintVersion();
 
 public:
-    bool m_verbose;
-
     std::vector<std::string> m_input_files;
     std::string m_output_directory;
 
+    // Generate a build log that is always written for the compiler to determine
+    // the last output time.
     std::string m_build_log_file;
 
     std::vector<std::pair<std::string, std::string>> m_defines;

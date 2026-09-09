@@ -1,80 +1,78 @@
 #include "ObjWriterIW4.h"
 
-#include "AssetDumpers/AssetDumperAddonMapEnts.h"
-#include "AssetDumpers/AssetDumperGfxImage.h"
-#include "AssetDumpers/AssetDumperGfxLightDef.h"
-#include "AssetDumpers/AssetDumperLeaderboardDef.h"
-#include "AssetDumpers/AssetDumperLoadedSound.h"
-#include "AssetDumpers/AssetDumperLocalizeEntry.h"
-#include "AssetDumpers/AssetDumperMenuDef.h"
-#include "AssetDumpers/AssetDumperMenuList.h"
-#include "AssetDumpers/AssetDumperPhysCollmap.h"
-#include "AssetDumpers/AssetDumperPhysPreset.h"
-#include "AssetDumpers/AssetDumperPixelShader.h"
-#include "AssetDumpers/AssetDumperRawFile.h"
-#include "AssetDumpers/AssetDumperSndCurve.h"
-#include "AssetDumpers/AssetDumperStringTable.h"
-#include "AssetDumpers/AssetDumperStructuredDataDefSet.h"
-#include "AssetDumpers/AssetDumperTechniqueSet.h"
-#include "AssetDumpers/AssetDumperTracer.h"
-#include "AssetDumpers/AssetDumperVehicle.h"
-#include "AssetDumpers/AssetDumperVertexShader.h"
-#include "AssetDumpers/AssetDumperWeapon.h"
-#include "AssetDumpers/AssetDumperXModel.h"
-#include "Game/IW4/GameAssetPoolIW4.h"
-#include "Material/DumperMaterialIW4.h"
-#include "ObjWriting.h"
+#include "Game/IW4/Font/FontDumperIW4.h"
+#include "Game/IW4/Image/ImageDumperIW4.h"
+#include "Game/IW4/Maps/MapEntsDumperIW4.h"
+#include "Game/IW4/Material/MaterialJsonDumperIW4.h"
+#include "Game/IW4/Techset/PixelShaderDumperIW4.h"
+#include "Game/IW4/Techset/TechsetDumperIW4.h"
+#include "Game/IW4/Techset/VertexShaderDumperIW4.h"
+#include "Game/IW4/Tracer/TracerDumperIW4.h"
+#include "Game/IW4/Vehicle/VehicleDumperIW4.h"
+#include "Game/IW4/XAnim/XAnimDumperIW4.h"
+#include "Game/IW4/XModel/XModelDumperIW4.h"
+#include "Leaderboard/LeaderboardJsonDumperIW4.h"
+#include "LightDef/LightDefDumperIW4.h"
+#include "Localize/LocalizeDumperIW4.h"
+#include "Maps/AddonMapEntsDumperIW4.h"
+#include "Material/MaterialDecompilingDumperIW4.h"
+#include "Menu/MenuDumperIW4.h"
+#include "Menu/MenuListDumperIW4.h"
+#include "PhysCollmap/PhysCollmapDumperIW4.h"
+#include "PhysPreset/PhysPresetInfoStringDumperIW4.h"
+#include "RawFile/RawFileDumperIW4.h"
+#include "Sound/LoadedSoundDumperIW4.h"
+#include "Sound/SndCurveDumperIW4.h"
+#include "StringTable/StringTableDumperIW4.h"
+#include "StructuredDataDef/StructuredDataDefDumperIW4.h"
+#include "Weapon/WeaponDumperIW4.h"
 
 using namespace IW4;
 
-bool ObjWriter::DumpZone(AssetDumpingContext& context) const
+void ObjWriter::RegisterAssetDumpers(AssetDumpingContext& context)
 {
-#define DUMP_ASSET_POOL(dumperType, poolName, assetType)                                                                                                       \
-    if (assetPools->poolName && ObjWriting::ShouldHandleAssetType(assetType))                                                                                  \
-    {                                                                                                                                                          \
-        dumperType dumper;                                                                                                                                     \
-        dumper.DumpPool(context, assetPools->poolName.get());                                                                                                  \
-    }
-
-    const auto* assetPools = dynamic_cast<GameAssetPoolIW4*>(context.m_zone.m_pools.get());
-
-    DUMP_ASSET_POOL(AssetDumperPhysPreset, m_phys_preset, ASSET_TYPE_PHYSPRESET)
-    DUMP_ASSET_POOL(AssetDumperPhysCollmap, m_phys_collmap, ASSET_TYPE_PHYSCOLLMAP)
-    // DUMP_ASSET_POOL(AssetDumperXAnimParts, m_xanim_parts, ASSET_TYPE_XANIMPARTS)
-    DUMP_ASSET_POOL(AssetDumperXModel, m_xmodel, ASSET_TYPE_XMODEL)
-    DUMP_ASSET_POOL(AssetDumperMaterial, m_material, ASSET_TYPE_MATERIAL)
-    DUMP_ASSET_POOL(AssetDumperPixelShader, m_material_pixel_shader, ASSET_TYPE_PIXELSHADER)
-    DUMP_ASSET_POOL(AssetDumperVertexShader, m_material_vertex_shader, ASSET_TYPE_VERTEXSHADER)
-    DUMP_ASSET_POOL(AssetDumperTechniqueSet, m_technique_set, ASSET_TYPE_TECHNIQUE_SET)
-    DUMP_ASSET_POOL(AssetDumperGfxImage, m_image, ASSET_TYPE_IMAGE)
-    // DUMP_ASSET_POOL(AssetDumpersnd_alias_list_t, m_sound, ASSET_TYPE_SOUND)
-    DUMP_ASSET_POOL(AssetDumperSndCurve, m_sound_curve, ASSET_TYPE_SOUND_CURVE)
-    DUMP_ASSET_POOL(AssetDumperLoadedSound, m_loaded_sound, ASSET_TYPE_LOADED_SOUND)
-    // DUMP_ASSET_POOL(AssetDumperClipMap, m_clip_map, ASSET_TYPE_CLIPMAP_MP)
-    // DUMP_ASSET_POOL(AssetDumperComWorld, m_com_world, ASSET_TYPE_COMWORLD)
-    // DUMP_ASSET_POOL(AssetDumperGameWorldSp, m_game_world_sp, ASSET_TYPE_GAMEWORLD_SP)
-    // DUMP_ASSET_POOL(AssetDumperGameWorldMp, m_game_world_mp, ASSET_TYPE_GAMEWORLD_MP)
-    // DUMP_ASSET_POOL(AssetDumperMapEnts, m_map_ents, ASSET_TYPE_MAP_ENTS)
-    // DUMP_ASSET_POOL(AssetDumperFxWorld, m_fx_world, ASSET_TYPE_FXWORLD)
-    // DUMP_ASSET_POOL(AssetDumperGfxWorld, m_gfx_world, ASSET_TYPE_GFXWORLD)
-    DUMP_ASSET_POOL(AssetDumperGfxLightDef, m_gfx_light_def, ASSET_TYPE_LIGHT_DEF)
-    // DUMP_ASSET_POOL(AssetDumperFont_s, m_font, ASSET_TYPE_FONT)
-    DUMP_ASSET_POOL(AssetDumperMenuList, m_menu_list, ASSET_TYPE_MENULIST)
-    DUMP_ASSET_POOL(AssetDumperMenuDef, m_menu_def, ASSET_TYPE_MENU)
-    DUMP_ASSET_POOL(AssetDumperLocalizeEntry, m_localize, ASSET_TYPE_LOCALIZE_ENTRY)
-    DUMP_ASSET_POOL(AssetDumperWeapon, m_weapon, ASSET_TYPE_WEAPON)
-    // DUMP_ASSET_POOL(AssetDumperSndDriverGlobals, m_snd_driver_globals, ASSET_TYPE_SNDDRIVER_GLOBALS)
-    // DUMP_ASSET_POOL(AssetDumperFxEffectDef, m_fx, ASSET_TYPE_FX)
-    // DUMP_ASSET_POOL(AssetDumperFxImpactTable, m_fx_impact_table, ASSET_TYPE_IMPACT_FX)
-    DUMP_ASSET_POOL(AssetDumperRawFile, m_raw_file, ASSET_TYPE_RAWFILE)
-    DUMP_ASSET_POOL(AssetDumperStringTable, m_string_table, ASSET_TYPE_STRINGTABLE)
-    DUMP_ASSET_POOL(AssetDumperLeaderboardDef, m_leaderboard, ASSET_TYPE_LEADERBOARD)
-    DUMP_ASSET_POOL(AssetDumperStructuredDataDefSet, m_structed_data_def_set, ASSET_TYPE_STRUCTURED_DATA_DEF)
-    DUMP_ASSET_POOL(AssetDumperTracer, m_tracer, ASSET_TYPE_TRACER)
-    DUMP_ASSET_POOL(AssetDumperVehicle, m_vehicle, ASSET_TYPE_VEHICLE)
-    DUMP_ASSET_POOL(AssetDumperAddonMapEnts, m_addon_map_ents, ASSET_TYPE_ADDON_MAP_ENTS)
-
-    return true;
-
-#undef DUMP_ASSET_POOL
+    RegisterAssetDumper(std::make_unique<phys_preset::InfoStringDumperIW4>());
+    RegisterAssetDumper(std::make_unique<phys_collmap::DumperIW4>());
+    RegisterAssetDumper(std::make_unique<xanim::DumperIW4>());
+    RegisterAssetDumper(std::make_unique<xmodel::DumperIW4>());
+    RegisterAssetDumper(std::make_unique<material::JsonDumperIW4>());
+#ifdef EXPERIMENTAL_MATERIAL_COMPILATION
+    RegisterAssetDumper(std::make_unique<material::DecompilingGdtDumperIW4>());
+#endif
+    RegisterAssetDumper(std::make_unique<techset::PixelShaderDumperIW4>());
+    RegisterAssetDumper(std::make_unique<techset::VertexShaderDumperIW4>());
+    RegisterAssetDumper(std::make_unique<techset::DumperIW4>(
+#ifdef TECHSET_DEBUG
+        true
+#else
+        false
+#endif
+        ));
+    RegisterAssetDumper(std::make_unique<image::DumperIW4>());
+    // REGISTER_DUMPER(AssetDumpersnd_alias_list_t)
+    RegisterAssetDumper(std::make_unique<sound_curve::DumperIW4>());
+    RegisterAssetDumper(std::make_unique<sound::LoadedSoundDumperIW4>());
+    // REGISTER_DUMPER(AssetDumperClipMap)
+    // REGISTER_DUMPER(AssetDumperComWorld)
+    // REGISTER_DUMPER(AssetDumperGameWorldSp)
+    // REGISTER_DUMPER(AssetDumperGameWorldMp)
+    RegisterAssetDumper(std::make_unique<map_ents::DumperIW4>());
+    // REGISTER_DUMPER(AssetDumperFxWorld)
+    // REGISTER_DUMPER(AssetDumperGfxWorld)
+    RegisterAssetDumper(std::make_unique<light_def::DumperIW4>());
+    RegisterAssetDumper(std::make_unique<font::JsonDumperIW4>());
+    RegisterAssetDumper(std::make_unique<menu::MenuListDumperIW4>());
+    RegisterAssetDumper(std::make_unique<menu::MenuDumperIW4>());
+    RegisterAssetDumper(std::make_unique<localize::DumperIW4>());
+    RegisterAssetDumper(std::make_unique<weapon::DumperIW4>());
+    // REGISTER_DUMPER(AssetDumperSndDriverGlobals)
+    // REGISTER_DUMPER(AssetDumperFxEffectDef)
+    // REGISTER_DUMPER(AssetDumperFxImpactTable)
+    RegisterAssetDumper(std::make_unique<raw_file::DumperIW4>());
+    RegisterAssetDumper(std::make_unique<string_table::DumperIW4>());
+    RegisterAssetDumper(std::make_unique<leaderboard::JsonDumperIW4>());
+    RegisterAssetDumper(std::make_unique<structured_data_def::DumperIW4>());
+    RegisterAssetDumper(std::make_unique<tracer::DumperIW4>());
+    RegisterAssetDumper(std::make_unique<vehicle::DumperIW4>());
+    RegisterAssetDumper(std::make_unique<addon_map_ents::DumperIW4>());
 }

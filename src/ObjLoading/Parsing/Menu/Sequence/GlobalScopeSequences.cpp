@@ -5,7 +5,7 @@
 
 using namespace menu;
 
-namespace menu::global_scope_sequences
+namespace
 {
     class SequenceCloseBlock final : public MenuFileParser::sequence_t
     {
@@ -98,9 +98,7 @@ namespace menu::global_scope_sequences
             state->m_menus_to_load.emplace_back(menuNameToken.StringValue());
         }
     };
-} // namespace menu::global_scope_sequences
-
-using namespace global_scope_sequences;
+} // namespace
 
 GlobalScopeSequences::GlobalScopeSequences(std::vector<std::unique_ptr<MenuFileParser::sequence_t>>& allSequences,
                                            std::vector<MenuFileParser::sequence_t*>& scopeSequences)
@@ -108,10 +106,11 @@ GlobalScopeSequences::GlobalScopeSequences(std::vector<std::unique_ptr<MenuFileP
 {
 }
 
-void GlobalScopeSequences::AddSequences(FeatureLevel featureLevel, bool permissive) const
+void GlobalScopeSequences::AddSequences(const FeatureLevel featureLevel, const bool permissive) const
 {
     AddSequence(std::make_unique<SequenceCloseBlock>());
-    AddSequence(std::make_unique<SequenceFunctionDef>());
+    if (featureLevel != FeatureLevel::IW3 && featureLevel != FeatureLevel::T4)
+        AddSequence(std::make_unique<SequenceFunctionDef>());
     AddSequence(std::make_unique<SequenceMenuDef>());
     AddSequence(std::make_unique<SequenceLoadMenu>());
 }

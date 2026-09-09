@@ -2,7 +2,6 @@
 
 #include "ContentLoaderIW5.h"
 #include "Game/GameLanguage.h"
-#include "Game/IW5/GameAssetPoolIW5.h"
 #include "Game/IW5/GameIW5.h"
 #include "Game/IW5/IW5.h"
 #include "Game/IW5/ZoneConstantsIW5.h"
@@ -22,6 +21,7 @@
 #include "Loading/Steps/StepVerifyMagic.h"
 #include "Loading/Steps/StepVerifySignature.h"
 #include "Utils/ClassUtils.h"
+#include "Utils/Logging/Log.h"
 
 #include <cassert>
 #include <cstring>
@@ -32,33 +32,6 @@ using namespace IW5;
 
 namespace
 {
-    bool CanLoad(const ZoneHeader& header, bool* isSecure, bool* isOfficial)
-    {
-        assert(isSecure != nullptr);
-        assert(isOfficial != nullptr);
-
-        if (header.m_version != ZoneConstants::ZONE_VERSION)
-        {
-            return false;
-        }
-
-        if (!memcmp(header.m_magic, ZoneConstants::MAGIC_SIGNED_INFINITY_WARD, std::char_traits<char>::length(ZoneConstants::MAGIC_SIGNED_INFINITY_WARD)))
-        {
-            *isSecure = true;
-            *isOfficial = true;
-            return true;
-        }
-
-        if (!memcmp(header.m_magic, ZoneConstants::MAGIC_UNSIGNED, std::char_traits<char>::length(ZoneConstants::MAGIC_UNSIGNED)))
-        {
-            *isSecure = false;
-            *isOfficial = true;
-            return true;
-        }
-
-        return false;
-    }
-
     void SetupBlock(ZoneLoader& zoneLoader)
     {
 #define XBLOCK_DEF(name, type) std::make_unique<XBlock>(STR(name), name, type)
@@ -84,11 +57,11 @@ namespace
 
             if (!rsa->SetKey(ZoneConstants::RSA_PUBLIC_KEY_INFINITY_WARD, sizeof(ZoneConstants::RSA_PUBLIC_KEY_INFINITY_WARD)))
             {
-                std::cerr << "Invalid public key for signature checking\n";
+                con::error("Invalid public key for signature checking");
                 return nullptr;
             }
 
-            return rsa;
+            return std::move(rsa);
         }
         else
         {
@@ -99,14 +72,14 @@ namespace
         }
     }
 
-    void AddAuthHeaderSteps(const bool isSecure, const bool isOfficial, ZoneLoader& zoneLoader, std::string& fileName)
+    void AddAuthHeaderSteps(const ZoneLoaderInspectionResult& inspectResult, ZoneLoader& zoneLoader, const std::string& fileName)
     {
         // Unsigned zones do not have an auth header
-        if (!isSecure)
+        if (!inspectResult.m_is_signed)
             return;
 
         // If file is signed setup a RSA instance.
-        auto rsa = SetupRsa(isOfficial);
+        auto rsa = SetupRsa(inspectResult.m_is_official);
 
         zoneLoader.AddLoadingStep(step::CreateStepVerifyMagic(ZoneConstants::MAGIC_AUTH_HEADER));
         zoneLoader.AddLoadingStep(step::CreateStepSkipBytes(4)); // Skip reserved
@@ -148,25 +121,61 @@ namespace
     }
 } // namespace
 
-std::unique_ptr<ZoneLoader> ZoneLoaderFactory::CreateLoaderForHeader(ZoneHeader& header, std::string& fileName) const
+std::optional<ZoneLoaderInspectionResult> ZoneLoaderFactory::InspectZoneHeader(ZoneDataPeeking& filePeek) const
 {
-    bool isSecure;
-    bool isOfficial;
+    const auto& header = filePeek.PeekStruct<ZoneHeader>();
+    if (header.m_version != ZoneConstants::ZONE_VERSION)
+        return std::nullopt;
 
-    // Check if this file is a supported IW4 zone.
-    if (!CanLoad(header, &isSecure, &isOfficial))
+    if (!memcmp(header.m_magic, ZoneConstants::MAGIC_SIGNED_INFINITY_WARD, std::char_traits<char>::length(ZoneConstants::MAGIC_SIGNED_INFINITY_WARD)))
+    {
+        return ZoneLoaderInspectionResult{
+            .m_game_id = GameId::IW5,
+            .m_endianness = GameEndianness::LE,
+            .m_word_size = GameWordSize::ARCH_32,
+            .m_platform = GamePlatform::PC,
+            .m_is_official = true,
+            .m_is_signed = true,
+            .m_is_encrypted = false,
+        };
+    }
+
+    if (!memcmp(header.m_magic, ZoneConstants::MAGIC_UNSIGNED, std::char_traits<char>::length(ZoneConstants::MAGIC_UNSIGNED)))
+    {
+        return ZoneLoaderInspectionResult{
+            .m_game_id = GameId::IW5,
+            .m_endianness = GameEndianness::LE,
+            .m_word_size = GameWordSize::ARCH_32,
+            .m_platform = GamePlatform::PC,
+            .m_is_official = false,
+            .m_is_signed = false,
+            .m_is_encrypted = false,
+        };
+    }
+
+    return std::nullopt;
+}
+
+std::unique_ptr<ZoneLoader> ZoneLoaderFactory::CreateLoaderForHeader(ZoneDataPeeking& filePeek,
+                                                                     const std::string& fileName,
+                                                                     std::optional<std::unique_ptr<ProgressCallback>> progressCallback) const
+{
+    const auto inspectResult = InspectZoneHeader(filePeek);
+    if (!inspectResult)
         return nullptr;
 
     // Create new zone
-    auto zone = std::make_unique<Zone>(fileName, 0, IGame::GetGameById(GameId::IW5));
+    auto zone = std::make_unique<Zone>(fileName, 0, GameId::IW5, inspectResult->m_platform);
     auto* zonePtr = zone.get();
-    zone->m_pools = std::make_unique<GameAssetPoolIW5>(zonePtr, 0);
     zone->m_language = GameLanguage::LANGUAGE_NONE;
 
     // File is supported. Now setup all required steps for loading this file.
     auto zoneLoader = std::make_unique<ZoneLoader>(std::move(zone));
 
     SetupBlock(*zoneLoader);
+
+    // Skip the initial header that we peeked at before
+    zoneLoader->AddLoadingStep(step::CreateStepSkipBytes(sizeof(ZoneHeader)));
 
     // Skip unknown 1 byte field that the game ignores as well
     zoneLoader->AddLoadingStep(step::CreateStepSkipBytes(1));
@@ -175,7 +184,7 @@ std::unique_ptr<ZoneLoader> ZoneLoaderFactory::CreateLoaderForHeader(ZoneHeader&
     zoneLoader->AddLoadingStep(step::CreateStepSkipBytes(8));
 
     // Add steps for loading the auth header which also contain the signature of the zone if it is signed.
-    AddAuthHeaderSteps(isSecure, isOfficial, *zoneLoader, fileName);
+    AddAuthHeaderSteps(*inspectResult, *zoneLoader, fileName);
 
     zoneLoader->AddLoadingStep(step::CreateStepAddProcessor(processor::CreateProcessorInflate(ZoneConstants::AUTHED_CHUNK_SIZE)));
 
@@ -192,7 +201,8 @@ std::unique_ptr<ZoneLoader> ZoneLoaderFactory::CreateLoaderForHeader(ZoneHeader&
         32u,
         ZoneConstants::OFFSET_BLOCK_BIT_COUNT,
         ZoneConstants::INSERT_BLOCK,
-        zonePtr->Memory()));
+        zonePtr->Memory(),
+        std::move(progressCallback)));
 
     return zoneLoader;
 }

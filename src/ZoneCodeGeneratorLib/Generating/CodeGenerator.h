@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ICodeTemplate.h"
+#include "Utils/FileUtils.h"
 #include "ZoneCodeGeneratorArguments.h"
 
 #include <memory>
@@ -12,13 +13,15 @@ class CodeGenerator
 public:
     explicit CodeGenerator(const ZoneCodeGeneratorArguments* args);
 
-    bool GenerateCode(IDataRepository* repository);
+    bool GenerateCode(const IDataRepository* repository);
 
 private:
     void SetupTemplates();
 
-    bool GenerateCodeForTemplate(const RenderingContext& context, ICodeTemplate* codeTemplate) const;
-    static bool GetAssetWithName(IDataRepository* repository, const std::string& name, StructureInformation*& asset);
+    utils::TextFileCheckDirtyResult GenerateCodeOncePerTemplate(const OncePerTemplateRenderingContext& context, ICodeTemplate* codeTemplate) const;
+    utils::TextFileCheckDirtyResult GenerateCodeOncePerAsset(const OncePerAssetRenderingContext& context, ICodeTemplate* codeTemplate) const;
+
+    static bool GetAssetWithName(const IDataRepository* repository, const std::string& name, StructureInformation*& asset);
 
     const ZoneCodeGeneratorArguments* m_args;
     std::unordered_map<std::string, std::unique_ptr<ICodeTemplate>> m_template_mapping;

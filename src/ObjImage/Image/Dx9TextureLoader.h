@@ -5,27 +5,38 @@
 
 #include <memory>
 
-class Dx9TextureLoader
+namespace image
 {
-public:
-    Dx9TextureLoader();
+    class Dx9TextureLoader
+    {
+    public:
+        enum class MipMapDataOrder
+        {
+            LargestToSmallest,
+            SmallestToLargest,
+        };
 
-    Dx9TextureLoader& Format(oat::D3DFORMAT format);
-    Dx9TextureLoader& Type(TextureType textureType);
-    Dx9TextureLoader& HasMipMaps(bool hasMipMaps);
-    Dx9TextureLoader& Width(unsigned width);
-    Dx9TextureLoader& Height(unsigned height);
-    Dx9TextureLoader& Depth(unsigned depth);
+        Dx9TextureLoader();
 
-    std::unique_ptr<Texture> LoadTexture(const void* data);
+        Dx9TextureLoader& Format(oat::D3DFORMAT format);
+        Dx9TextureLoader& Type(TextureType textureType);
+        Dx9TextureLoader& HasMipMaps(bool hasMipMaps);
+        Dx9TextureLoader& MipMapOrder(MipMapDataOrder mipMapOrder);
+        Dx9TextureLoader& Width(unsigned width);
+        Dx9TextureLoader& Height(unsigned height);
+        Dx9TextureLoader& Depth(unsigned depth);
 
-private:
-    [[nodiscard]] const ImageFormat* GetFormatForDx9Format() const;
+        std::unique_ptr<Texture> LoadTexture(const void* data);
 
-    oat::D3DFORMAT m_format;
-    TextureType m_type;
-    bool m_has_mip_maps;
-    unsigned m_width;
-    unsigned m_height;
-    unsigned m_depth;
-};
+    private:
+        [[nodiscard]] const ImageFormat* GetFormatForDx9Format() const;
+
+        oat::D3DFORMAT m_format;
+        TextureType m_type;
+        bool m_has_mip_maps;
+        MipMapDataOrder m_mip_map_order;
+        unsigned m_width;
+        unsigned m_height;
+        unsigned m_depth;
+    };
+} // namespace image

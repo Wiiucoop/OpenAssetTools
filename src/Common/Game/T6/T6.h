@@ -9,8 +9,90 @@
 
 // clang-format on
 
+#include <cstdint>
+#include <utility>
+
 namespace T6
 {
+    enum XAssetType
+    {
+        ASSET_TYPE_XMODELPIECES,
+        ASSET_TYPE_PHYSPRESET,
+        ASSET_TYPE_PHYSCONSTRAINTS,
+        ASSET_TYPE_DESTRUCTIBLEDEF,
+        ASSET_TYPE_XANIMPARTS,
+        ASSET_TYPE_XMODEL,
+        ASSET_TYPE_MATERIAL,
+        ASSET_TYPE_TECHNIQUE_SET,
+        ASSET_TYPE_IMAGE,
+        ASSET_TYPE_SOUND,
+        ASSET_TYPE_SOUND_PATCH,
+        ASSET_TYPE_CLIPMAP,
+        ASSET_TYPE_CLIPMAP_PVS,
+        ASSET_TYPE_COMWORLD,
+        ASSET_TYPE_GAMEWORLD_SP,
+        ASSET_TYPE_GAMEWORLD_MP,
+        ASSET_TYPE_MAP_ENTS,
+        ASSET_TYPE_GFXWORLD,
+        ASSET_TYPE_LIGHT_DEF,
+        ASSET_TYPE_UI_MAP,
+        ASSET_TYPE_FONT,
+        ASSET_TYPE_FONTICON,
+        ASSET_TYPE_MENULIST,
+        ASSET_TYPE_MENU,
+        ASSET_TYPE_LOCALIZE_ENTRY,
+        ASSET_TYPE_WEAPON,
+        ASSET_TYPE_WEAPONDEF,
+        ASSET_TYPE_WEAPON_VARIANT,
+        ASSET_TYPE_WEAPON_FULL,
+        ASSET_TYPE_ATTACHMENT,
+        ASSET_TYPE_ATTACHMENT_UNIQUE,
+        ASSET_TYPE_WEAPON_CAMO,
+        ASSET_TYPE_SNDDRIVER_GLOBALS,
+        ASSET_TYPE_FX,
+        ASSET_TYPE_IMPACT_FX,
+        ASSET_TYPE_AITYPE,
+        ASSET_TYPE_MPTYPE,
+        ASSET_TYPE_MPBODY,
+        ASSET_TYPE_MPHEAD,
+        ASSET_TYPE_CHARACTER,
+        ASSET_TYPE_XMODELALIAS,
+        ASSET_TYPE_RAWFILE,
+        ASSET_TYPE_STRINGTABLE,
+        ASSET_TYPE_LEADERBOARD,
+        ASSET_TYPE_XGLOBALS,
+        ASSET_TYPE_DDL,
+        ASSET_TYPE_GLASSES,
+        ASSET_TYPE_EMBLEMSET,
+        ASSET_TYPE_SCRIPTPARSETREE,
+        ASSET_TYPE_KEYVALUEPAIRS,
+        ASSET_TYPE_VEHICLEDEF,
+        ASSET_TYPE_MEMORYBLOCK,
+        ASSET_TYPE_ADDON_MAP_ENTS,
+        ASSET_TYPE_TRACER,
+        ASSET_TYPE_SKINNEDVERTS,
+        ASSET_TYPE_QDB,
+        ASSET_TYPE_SLUG,
+        ASSET_TYPE_FOOTSTEP_TABLE,
+        ASSET_TYPE_FOOTSTEPFX_TABLE,
+        ASSET_TYPE_ZBARRIER,
+        ASSET_TYPE_CUSTOM_MAP,
+
+        ASSET_TYPE_COUNT
+    };
+
+    enum SubAssetType
+    {
+        SUB_ASSET_TYPE_TECHNIQUE,
+        SUB_ASSET_TYPE_VERTEX_DECL,
+        SUB_ASSET_TYPE_VERTEX_SHADER,
+        SUB_ASSET_TYPE_PIXEL_SHADER,
+        SUB_ASSET_TYPE_ACCURACY_GRAPH,
+        SUB_ASSET_TYPE_FLAME_TABLE,
+
+        SUB_ASSET_TYPE_COUNT
+    };
+
     struct ScriptStringList
     {
         int count;
@@ -253,6 +335,12 @@ namespace T6
         customMapModel* models;
     };
 
+    struct AccuracyGraph
+    {
+        vec2_t* graphKnots;
+        int graphKnotCount;
+    };
+
     using AssetPhysPreset = Asset<ASSET_TYPE_PHYSPRESET, PhysPreset>;
     using AssetPhysConstraints = Asset<ASSET_TYPE_PHYSCONSTRAINTS, PhysConstraints>;
     using AssetDestructibleDef = Asset<ASSET_TYPE_DESTRUCTIBLEDEF, DestructibleDef>;
@@ -303,6 +391,13 @@ namespace T6
     using AssetFootstepFxTable = Asset<ASSET_TYPE_FOOTSTEPFX_TABLE, FootstepFXTableDef>;
     using AssetZBarrier = Asset<ASSET_TYPE_ZBARRIER, ZBarrierDef>;
     using AssetCustomMap = Asset<ASSET_TYPE_CUSTOM_MAP, customMapInfo>;
+
+    using SubAssetTechnique = SubAsset<SUB_ASSET_TYPE_TECHNIQUE, MaterialTechnique>;
+    using SubAssetVertexDecl = SubAsset<SUB_ASSET_TYPE_VERTEX_DECL, MaterialVertexDeclaration>;
+    using SubAssetVertexShader = SubAsset<SUB_ASSET_TYPE_VERTEX_SHADER, MaterialVertexShader>;
+    using SubAssetPixelShader = SubAsset<SUB_ASSET_TYPE_PIXEL_SHADER, MaterialPixelShader>;
+    using SubAssetAccuracyGraph = SubAsset<SUB_ASSET_TYPE_ACCURACY_GRAPH, AccuracyGraph>;
+    using SubAssetFlameTable = SubAsset<SUB_ASSET_TYPE_FLAME_TABLE, FlameTable>;
 } // namespace T6
 
 DEFINE_ASSET_NAME_ACCESSOR(T6::AssetPhysPreset, name);

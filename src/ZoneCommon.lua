@@ -6,10 +6,13 @@ function ZoneCommon:include(includes)
 			path.join(ProjectFolder(), "ZoneCommon")
 		}
 		Utils:include(includes)
+		XMemCompress:include(includes)
 		Common:include(includes)
 		ObjCommon:include(includes)
 		Parser:include(includes)
 		Cryptography:include(includes)
+		ZoneCode:include(includes)
+		ZoneCode:use()
 	end
 end
 
@@ -20,6 +23,8 @@ function ZoneCommon:link(links)
 	links:linkto(ObjCommon)
 	links:linkto(Parser)
 	links:linkto(Utils)
+	links:linkto(XMemCompress)
+	ZoneCode:use()
 end
 
 function ZoneCommon:use()
@@ -42,8 +47,19 @@ function ZoneCommon:project()
 		
 		files {
 			path.join(folder, "ZoneCommon/**.h"), 
-			path.join(folder, "ZoneCommon/**.cpp") 
+			path.join(folder, "ZoneCommon/**.cpp"),
+			ZoneCode:allMarkFiles()
+		}
+		
+        vpaths {
+			["*"] = {
+				path.join(folder, "ZoneCommon"),
+				path.join(BuildFolder(), "src/ZoneCode")
+			}
 		}
 		
         self:include(includes)
+		ZoneCode:include(includes)
+
+		ZoneCode:use()
 end

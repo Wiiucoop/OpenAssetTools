@@ -1,46 +1,56 @@
 #include "GameIW4.h"
 
+#include "IW4.h"
+
 #include <algorithm>
 
 using namespace IW4;
 
-GameId Game::GetId() const
+namespace
 {
-    return GameId::IW4;
-}
+    constexpr const char* ASSET_TYPE_NAMES[]{
+        "physpreset",  "physcollmap", "xanim",        "xmodelsurfs", "xmodel",
+        "material",    "pixelshader", "vertexshader", "vertexdecl",  "techniqueset",
+        "image",       "sound",       "soundcurve",   "loadedsound", "clipmap_unused",
+        "clipmap",     "comworld",    "gameworldsp",  "gameworldmp", "mapents",
+        "fxworld",     "gfxworld",    "lightdef",     "uimap",       "font",
+        "menulist",    "menu",        "localize",     "weapon",      "snddriverglobals",
+        "fx",          "impactfx",    "aitype",       "mptype",      "character",
+        "xmodelalias", "rawfile",     "stringtable",  "leaderboard", "structureddatadef",
+        "tracer",      "vehicle",     "addonmapents",
+    };
+    static_assert(std::extent_v<decltype(ASSET_TYPE_NAMES)> == ASSET_TYPE_COUNT);
 
-const std::string& Game::GetFullName() const
+    constexpr const char* SUB_ASSET_TYPE_NAMES[]{
+        "technique",
+        "accuracygraph",
+    };
+    static_assert(std::extent_v<decltype(SUB_ASSET_TYPE_NAMES)> == SUB_ASSET_TYPE_COUNT);
+} // namespace
+
+namespace IW4
 {
-    static std::string fullName = "Call Of Duty: Modern Warfare 2";
-    return fullName;
-}
+    Game::Game()
+        : AbstractGame(ASSET_TYPE_NAMES, std::extent_v<decltype(ASSET_TYPE_NAMES)>, SUB_ASSET_TYPE_NAMES, std::extent_v<decltype(SUB_ASSET_TYPE_NAMES)>)
+    {
+        AddAssetTypeNameAlias<AssetTechniqueSet>("techset");
+        AddAssetTypeNameAlias<AssetLightDef>("gfxlightdef");
+    }
 
-const std::string& Game::GetShortName() const
-{
-    static std::string shortName = "IW4";
-    return shortName;
-}
+    GameId Game::GetId() const
+    {
+        return GameId::IW4;
+    }
 
-void Game::AddZone(Zone* zone)
-{
-    m_zones.push_back(zone);
-}
+    const std::string& Game::GetFullName() const
+    {
+        static std::string fullName = "Call Of Duty: Modern Warfare 2";
+        return fullName;
+    }
 
-void Game::RemoveZone(Zone* zone)
-{
-    const auto foundEntry = std::ranges::find(m_zones, zone);
-
-    if (foundEntry != m_zones.end())
-        m_zones.erase(foundEntry);
-}
-
-const std::vector<Zone*>& Game::GetZones() const
-{
-    return m_zones;
-}
-
-const std::vector<GameLanguagePrefix>& Game::GetLanguagePrefixes() const
-{
-    static std::vector<GameLanguagePrefix> prefixes;
-    return prefixes;
-}
+    const std::string& Game::GetShortName() const
+    {
+        static std::string shortName = "IW4";
+        return shortName;
+    }
+} // namespace IW4

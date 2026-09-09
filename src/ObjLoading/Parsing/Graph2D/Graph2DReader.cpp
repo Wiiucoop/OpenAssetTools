@@ -5,6 +5,7 @@
 #include "Parsing/Simple/Matcher/SimpleMatcherFactory.h"
 #include "Parsing/Simple/SimpleLexer.h"
 #include "Parsing/Simple/SimpleParserValue.h"
+#include "Utils/Logging/Log.h"
 
 #include <format>
 
@@ -169,12 +170,12 @@ namespace graph2d
         }
 
     public:
-        _NODISCARD GenericGraph2D& GetResult() const
+        [[nodiscard]] GenericGraph2D& GetResult() const
         {
             return m_state->m_result;
         }
 
-        _NODISCARD bool HasExpectedKnotCount() const
+        [[nodiscard]] bool HasExpectedKnotCount() const
         {
             return GetExpectedKnotCount() == GetActualKnotCount();
         }
@@ -210,17 +211,17 @@ namespace graph2d
 
         if (!parser.Parse())
         {
-            std::cerr << std::format("Failed to parse {} \"{}\"\n", graphTypeName, graphName);
+            con::error("Failed to parse {} \"{}\"", graphTypeName, graphName);
             return nullptr;
         }
 
         if (!parser.HasExpectedKnotCount())
         {
-            std::cerr << std::format("Failed to load {} \"{}\": Actual knot count ({}) differs from expected ({})\n",
-                                     graphTypeName,
-                                     graphName,
-                                     parser.GetActualKnotCount(),
-                                     parser.GetExpectedKnotCount());
+            con::error("Failed to load {} \"{}\": Actual knot count ({}) differs from expected ({})",
+                       graphTypeName,
+                       graphName,
+                       parser.GetActualKnotCount(),
+                       parser.GetExpectedKnotCount());
             return nullptr;
         }
 

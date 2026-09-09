@@ -23,7 +23,7 @@ void BinOutput::AlignToFour(const char value) const
     const auto offset = m_stream.tellp();
     if (offset % 4 > 0)
     {
-        const uint32_t alignmentValue = FileUtils::MakeMagic32(value, value, value, value);
+        const uint32_t alignmentValue = utils::MakeMagic32(value, value, value, value);
         Write(&alignmentValue, 4u - (offset % 4u));
     }
 }
@@ -33,7 +33,7 @@ std::optional<std::string> BinOutput::CreateBufferUri(const void* buffer, size_t
     return std::nullopt;
 }
 
-void BinOutput::EmitJson(const nlohmann::json& json) const
+void BinOutput::EmitJson(const nlohmann::ordered_json& json) const
 {
     static constexpr uint32_t ZERO = 0u;
 

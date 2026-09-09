@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Utils/ClassUtils.h"
 #include "Utils/ObjStream.h"
 
 #include <cstdint>
 #include <istream>
+#include <memory>
 #include <mutex>
 
 class IPakStreamManagerActions
@@ -18,17 +18,11 @@ public:
 
 class IPakStreamManager
 {
-    class Impl;
-    Impl* m_impl;
-
 public:
-    explicit IPakStreamManager(std::istream& stream);
-    IPakStreamManager(const IPakStreamManager& other) = delete;
-    IPakStreamManager(IPakStreamManager&& other) noexcept = delete;
-    ~IPakStreamManager();
+    IPakStreamManager() = default;
+    virtual ~IPakStreamManager() = default;
 
-    IPakStreamManager& operator=(const IPakStreamManager& other) = delete;
-    IPakStreamManager& operator=(IPakStreamManager&& other) noexcept = delete;
+    static std::unique_ptr<IPakStreamManager> Create(std::istream& stream, bool isLittleEndian);
 
-    _NODISCARD std::unique_ptr<iobjstream> OpenStream(int64_t startPosition, size_t length) const;
+    [[nodiscard]] virtual std::unique_ptr<iobjstream> OpenStream(int64_t startPosition, size_t length) = 0;
 };

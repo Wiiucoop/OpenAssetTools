@@ -1,7 +1,5 @@
-#include "Game/IW3/StringTable/AssetLoaderStringTableIW3.h"
-
 #include "Game/IW3/GameIW3.h"
-#include "Pool/ZoneAssetPools.h"
+#include "Game/IW3/StringTable/LoaderStringTableIW3.h"
 #include "SearchPath/MockSearchPath.h"
 #include "Utils/MemoryManager.h"
 
@@ -20,14 +18,14 @@ namespace
                                "test,data,lol\n"
                                "lorem,ipsum");
 
-        Zone zone("MockZone", 0, IGame::GetGameById(GameId::IW3));
+        Zone zone("MockZone", 0, GameId::IW3, GamePlatform::PC);
 
         MemoryManager memory;
         AssetCreatorCollection creatorCollection(zone);
         IgnoredAssetLookup ignoredAssetLookup;
         AssetCreationContext context(zone, &creatorCollection, &ignoredAssetLookup);
 
-        auto loader = CreateStringTableLoader(memory, searchPath);
+        auto loader = string_table::CreateLoaderIW3(memory, searchPath);
         auto result = loader->CreateAsset("mp/cooltable.csv", context);
         REQUIRE(result.HasBeenSuccessful());
 

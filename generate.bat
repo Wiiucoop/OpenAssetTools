@@ -1,7 +1,7 @@
 @echo off
 
-set PREMAKE_URL="https://github.com/premake/premake-core/releases/download/v5.0.0-beta6/premake-5.0.0-beta6-windows.zip"
-set PREMAKE_HASH="c34a6e0b15f119f6284886298fdd8df543af87ad16f3ce5f4d0a847be2a88343"
+set PREMAKE_URL="https://github.com/premake/premake-core/releases/download/v5.0.0-beta8/premake-5.0.0-beta8-windows.zip"
+set PREMAKE_HASH="2301e3e23ff3074cb83a5ea6103d68c7ea81dad56b786807c84b0643cddea31b"
 
 @REM The following variables can be set:
 @REM    PREMAKE_NO_GLOBAL - Ignore premake5 executable from path
@@ -50,6 +50,14 @@ cd %~dp0
 
 :start
 
+IF NOT EXIST ".git" (
+    git rev-parse --is-inside-work-tree >NUL 2>&1
+    IF ERRORLEVEL 1 (
+        echo You must clone the repository using 'git clone'. Please read README.md.
+        exit 1
+    )
+)
+
 IF "%PREMAKE_NO_GLOBAL%" EQU "" (
     where /Q "premake5.exe"
     IF NOT ERRORLEVEL 1 (
@@ -85,4 +93,4 @@ exit 1
 
 :runpremake
 git submodule update --init --recursive
-%PREMAKE_BIN% %* vs2022
+%PREMAKE_BIN% %* vs2026

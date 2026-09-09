@@ -5,6 +5,7 @@
 #include "Parsing/Simple/Expression/ISimpleExpression.h"
 
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -42,9 +43,13 @@ namespace menu
         double m_feeder = 0;
         int m_element_style = 0;
         CommonColor m_select_border;
+        CommonColor m_focus_color;
         std::string m_select_icon;
+        std::string m_background_item;
+        std::string m_highlight_texture;
 
         std::unique_ptr<CommonEventHandlerSet> m_on_double_click;
+        std::unique_ptr<CommonEventHandlerSet> m_on_selection_change;
         std::unique_ptr<ISimpleExpression> m_element_height_expression;
         std::vector<Column> m_columns;
     };
@@ -92,7 +97,7 @@ namespace menu
         };
 
         std::string m_name;
-        std::string m_text;
+        std::optional<std::string> m_text;
         bool m_text_save_game = false;
         bool m_text_cinematic_subtitle = false;
         std::string m_group;
@@ -106,7 +111,7 @@ namespace menu
         int m_border = 0;
         double m_border_size = 0;
         int m_owner_draw = 0;
-        int m_owner_draw_flags = 0;
+        unsigned m_owner_draw_flags = 0;
         int m_align = 0;
         int m_text_align = 0;
         double m_text_align_x = 0;

@@ -5,6 +5,7 @@
 #include "Sound/FlacDecoder.h"
 #include "Sound/WavTypes.h"
 #include "Utils/FileUtils.h"
+#include "Utils/Logging/Log.h"
 #include "Utils/StringUtils.h"
 
 #include <cstring>
@@ -31,7 +32,7 @@ class SoundBankWriterImpl : public SoundBankWriter
 {
     static constexpr char BRANDING[] = "Created with OAT - OpenAssetTools";
     static constexpr int64_t DATA_OFFSET = 0x800;
-    static constexpr uint32_t MAGIC = FileUtils::MakeMagic32('2', 'U', 'X', '#');
+    static constexpr uint32_t MAGIC = utils::MakeMagic32('2', 'U', 'X', '#');
     static constexpr uint32_t VERSION = 14u;
 
     inline static const std::string PAD_DATA = std::string(16, '\x00');
@@ -201,7 +202,7 @@ public:
             return true;
         }
 
-        std::cerr << std::format("Unable to decode .flac file for sound {}\n", filePath);
+        con::error("Unable to decode .flac file for sound {}", filePath);
         return false;
     }
 
@@ -238,15 +239,14 @@ public:
 
             if (!LoadFileByExtension(soundFilePath, sound, soundData, soundSize))
             {
-                std::cerr << std::format("Unable to find a compatible file for sound {}\n", soundFilePath);
+                con::error("Unable to find a compatible file for sound {}", soundFilePath);
                 return false;
             }
 
             const auto lastEntry = m_entries.rbegin();
             if (!sound.m_streamed && lastEntry->frameRateIndex != 6)
             {
-                std::cout << std::format("WARNING: Loaded sound \"{}\" should have a framerate of 48000 but doesn't. This sound may not work on all games!\n",
-                                         soundFilePath);
+                con::warn("Loaded sound \"{}\" should have a framerate of 48000 but doesn't. This sound may not work on all games!", soundFilePath);
             }
 
             SoundAssetBankChecksum checksum{};
@@ -297,7 +297,7 @@ public:
     {
         if (!WriteEntries())
         {
-            std::cerr << "An error occurred writing the sound bank entries. Please check output.\n";
+            con::error("An error occurred writing the sound bank entries. Please check output.");
             return false;
         }
 
@@ -311,7 +311,7 @@ public:
 
         if (m_current_offset > UINT32_MAX)
         {
-            std::cerr << "Sound bank files must be under 4GB. Please reduce the number of sounds being written!\n";
+            con::error("Sound bank files must be under 4GB. Please reduce the number of sounds being written!");
             return false;
         }
 

@@ -1,14 +1,12 @@
 #include "LoaderMenuListIW5.h"
 
-#include "Game/IW5/IW5.h"
 #include "Game/IW5/Menu/MenuConversionZoneStateIW5.h"
 #include "Game/IW5/Menu/MenuConverterIW5.h"
 #include "ObjLoading.h"
 #include "Parsing/Menu/MenuFileReader.h"
+#include "Utils/Logging/Log.h"
 
-#include <cstring>
-#include <format>
-#include <iostream>
+#include <deque>
 
 using namespace IW5;
 
@@ -43,7 +41,8 @@ namespace
                 const auto menuListResult = ParseMenuFile(*file.m_stream, assetName, zoneState);
                 if (menuListResult)
                 {
-                    ProcessParsedResults(assetName, context, *menuListResult, zoneState, conversionState, menus, registration);
+                    if (!ProcessParsedResults(assetName, context, *menuListResult, zoneState, conversionState, menus, registration))
+                        return AssetCreationResult::Failure();
 
                     for (const auto& menuToLoad : menuListResult->m_menus_to_load)
                         menuLoadQueue.emplace_back(menuToLoad);
@@ -58,7 +57,8 @@ namespace
             {
                 const auto& menuFileToLoad = menuLoadQueue.front();
 
-                LoadMenuFileFromQueue(menuFileToLoad, context, zoneState, conversionState, menus, registration);
+                if (!LoadMenuFileFromQueue(menuFileToLoad, context, zoneState, conversionState, menus, registration))
+                    return AssetCreationResult::Failure();
 
                 menuLoadQueue.pop_front();
             }
@@ -88,7 +88,7 @@ namespace
             const auto alreadyLoadedMenuFile = conversionState.m_menus_by_filename.find(menuFilePath);
             if (alreadyLoadedMenuFile != conversionState.m_menus_by_filename.end())
             {
-                std::cout << std::format("Already loaded \"{}\", skipping\n", menuFilePath);
+                con::debug("Already loaded \"{}\", skipping", menuFilePath);
                 for (auto* menu : alreadyLoadedMenuFile->second)
                 {
                     menus.emplace_back(menu->Asset());
@@ -100,21 +100,22 @@ namespace
             const auto file = m_search_path.Open(menuFilePath);
             if (!file.IsOpen())
             {
-                std::cerr << std::format("Could not open menu file \"{}\"\n", menuFilePath);
+                con::error("Could not open menu file \"{}\"", menuFilePath);
                 return false;
             }
 
             const auto menuFileResult = ParseMenuFile(*file.m_stream, menuFilePath, zoneState);
             if (menuFileResult)
             {
-                ProcessParsedResults(menuFilePath, context, *menuFileResult, zoneState, conversionState, menus, registration);
+                if (!ProcessParsedResults(menuFilePath, context, *menuFileResult, zoneState, conversionState, menus, registration))
+                    return false;
                 if (!menuFileResult->m_menus_to_load.empty())
-                    std::cout << std::format("WARNING: Menu file has menus to load even though it is not a menu list, ignoring: \"{}\"\n", menuFilePath);
+                    con::warn("Menu file has menus to load even though it is not a menu list, ignoring: \"{}\"", menuFilePath);
 
                 return true;
             }
             else
-                std::cerr << std::format("Could not read menu file \"{}\"\n", menuFilePath);
+                con::error("Could not read menu file \"{}\"", menuFilePath);
 
             return false;
         }
@@ -134,12 +135,12 @@ namespace
             for (const auto& menu : parsingResult.m_menus)
                 totalItemCount += static_cast<unsigned>(menu->m_items.size());
 
-            std::cout << std::format("Successfully read menu file \"{}\" ({} loads, {} menus, {} functions, {} items)\n",
-                                     fileName,
-                                     menuLoadCount,
-                                     menuCount,
-                                     functionCount,
-                                     totalItemCount);
+            con::info("Successfully read menu file \"{}\" ({} loads, {} menus, {} functions, {} items)",
+                      fileName,
+                      menuLoadCount,
+                      menuCount,
+                      functionCount,
+                      totalItemCount);
 
             // Add all functions to the zone state to make them available for all menus to be converted
             for (auto& function : parsingResult.m_functions)
@@ -157,10 +158,9 @@ namespace
                 auto* menuAsset = m_memory.Alloc<menuDef_t>();
                 AssetRegistration<AssetMenu> menuRegistration(commonMenu->m_name, menuAsset);
 
-                converter->ConvertMenu(*commonMenu, *menuAsset, menuRegistration);
-                if (menuAsset == nullptr)
+                if (!converter->ConvertMenu(*commonMenu, *menuAsset, menuRegistration))
                 {
-                    std::cerr << std::format("Failed to convert menu file \"{}\"\n", commonMenu->m_name);
+                    con::error("Failed to convert menu file \"{}\"", commonMenu->m_name);
                     return false;
                 }
 
@@ -212,10 +212,11 @@ namespace
     };
 } // namespace
 
-namespace IW5
+namespace menu
+
 {
-    std::unique_ptr<AssetCreator<AssetMenuList>> CreateMenuListLoader(MemoryManager& memory, ISearchPath& searchPath)
+    std::unique_ptr<AssetCreator<AssetMenuList>> CreateMenuListLoaderIW5(MemoryManager& memory, ISearchPath& searchPath)
     {
         return std::make_unique<MenuListLoader>(memory, searchPath);
     }
-} // namespace IW5
+} // namespace menu

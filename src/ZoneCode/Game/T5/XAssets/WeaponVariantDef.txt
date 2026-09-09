@@ -8,7 +8,7 @@ set reusable weapDef;
 set string szDisplayName;
 set string szAltWeaponName;
 set string szXAnims;
-set assetref szXAnims ASSET_TYPE_XANIMPARTS;
+set assetref szXAnims AssetXAnim;
 set count szXAnims NUM_WEAP_ANIMS;
 set reusable szXAnims;
 set scriptstring hideTags;
@@ -162,8 +162,8 @@ reorder:
 killIcon
 indicatorIcon;
 
-// flameTable
-use flameTable;
+// FlameTable
+use FlameTable;
 set string name;
 set string flameOffLoopSound;
 set string flameIgniteSound;

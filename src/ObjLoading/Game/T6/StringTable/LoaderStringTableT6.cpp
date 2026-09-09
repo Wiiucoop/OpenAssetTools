@@ -5,8 +5,6 @@
 #include "Game/T6/T6.h"
 #include "StringTable/StringTableLoader.h"
 
-#include <cstring>
-
 using namespace T6;
 
 namespace
@@ -28,6 +26,8 @@ namespace
 
             string_table::StringTableLoaderV3<StringTable, Common::Com_HashString> loader;
             auto* stringTable = loader.LoadFromStream(assetName, m_memory, *file.m_stream);
+            if (!stringTable)
+                return AssetCreationResult::Failure();
 
             return AssetCreationResult::Success(context.AddAsset<AssetStringTable>(assetName, stringTable));
         }
@@ -38,10 +38,10 @@ namespace
     };
 } // namespace
 
-namespace T6
+namespace string_table
 {
-    std::unique_ptr<AssetCreator<AssetStringTable>> CreateStringTableLoader(MemoryManager& memory, ISearchPath& searchPath)
+    std::unique_ptr<AssetCreator<AssetStringTable>> CreateLoaderT6(MemoryManager& memory, ISearchPath& searchPath)
     {
         return std::make_unique<StringTableLoader>(memory, searchPath);
     }
-} // namespace T6
+} // namespace string_table

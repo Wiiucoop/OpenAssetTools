@@ -9,6 +9,9 @@ namespace IW5
     class ZoneLoaderFactory final : public IZoneLoaderFactory
     {
     public:
-        std::unique_ptr<ZoneLoader> CreateLoaderForHeader(ZoneHeader& header, std::string& fileName) const override;
+        [[nodiscard]] std::optional<ZoneLoaderInspectionResult> InspectZoneHeader(ZoneDataPeeking& filePeek) const override;
+        [[nodiscard]] std::unique_ptr<ZoneLoader> CreateLoaderForHeader(ZoneDataPeeking& filePeek,
+                                                                        const std::string& fileName,
+                                                                        std::optional<std::unique_ptr<ProgressCallback>> progressCallback) const override;
     };
 } // namespace IW5

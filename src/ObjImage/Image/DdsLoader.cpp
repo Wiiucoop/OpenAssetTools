@@ -1,18 +1,20 @@
 #include "DdsLoader.h"
 
 #include "Image/DdsTypes.h"
-#include "Utils/ClassUtils.h"
 #include "Utils/FileUtils.h"
+#include "Utils/Logging/Log.h"
 
 #include <format>
 #include <iostream>
 #include <memory>
 
-namespace dds
+using namespace image;
+
+namespace
 {
     class DdsLoaderInternal
     {
-        static constexpr auto DDS_MAGIC = FileUtils::MakeMagic32('D', 'D', 'S', ' ');
+        static constexpr auto DDS_MAGIC = utils::MakeMagic32('D', 'D', 'S', ' ');
 
     public:
         explicit DdsLoaderInternal(std::istream& stream)
@@ -41,13 +43,13 @@ namespace dds
             m_stream.read(reinterpret_cast<char*>(&magic), sizeof(magic));
             if (m_stream.gcount() != sizeof(magic))
             {
-                std::cerr << "Failed to read dds data\n";
+                con::error("Failed to read dds data");
                 return false;
             }
 
             if (magic != DDS_MAGIC)
             {
-                std::cerr << "Invalid magic for dds\n";
+                con::error("Invalid magic for dds");
                 return false;
             }
 
@@ -60,7 +62,7 @@ namespace dds
             m_stream.read(reinterpret_cast<char*>(&headerDx10), sizeof(headerDx10));
             if (m_stream.gcount() != sizeof(headerDx10))
             {
-                std::cerr << "Failed to read dds data\n";
+                con::error("Failed to read dds data");
                 return false;
             }
 
@@ -81,11 +83,11 @@ namespace dds
             }
             else
             {
-                std::cerr << std::format("Unsupported dds resourceDimension {}\n", static_cast<unsigned>(headerDx10.resourceDimension));
+                con::error("Unsupported dds resourceDimension {}", static_cast<unsigned>(headerDx10.resourceDimension));
                 return false;
             }
 
-            for (const auto* imageFormat : ImageFormat::ALL_FORMATS)
+            for (const auto* imageFormat : format::ALL)
             {
                 if (imageFormat->GetDxgiFormat() == headerDx10.dxgiFormat)
                 {
@@ -94,7 +96,7 @@ namespace dds
                 }
             }
 
-            std::cerr << std::format("Unsupported dds dxgi format {}\n", static_cast<unsigned>(headerDx10.dxgiFormat));
+            con::error("Unsupported dds dxgi format {}", static_cast<unsigned>(headerDx10.dxgiFormat));
             return false;
         }
 
@@ -102,23 +104,33 @@ namespace dds
         {
             switch (pf.dwFourCC)
             {
-            case FileUtils::MakeMagic32('D', 'X', 'T', '1'):
-                m_format = &ImageFormat::FORMAT_BC1;
+            case utils::MakeMagic32('D', 'X', 'T', '1'):
+                m_format = &format::BC1;
                 return true;
 
-            case FileUtils::MakeMagic32('D', 'X', 'T', '3'):
-                m_format = &ImageFormat::FORMAT_BC2;
+            case utils::MakeMagic32('D', 'X', 'T', '3'):
+                m_format = &format::BC2;
                 return true;
 
-            case FileUtils::MakeMagic32('D', 'X', 'T', '5'):
-                m_format = &ImageFormat::FORMAT_BC3;
+            case utils::MakeMagic32('D', 'X', 'T', '5'):
+                m_format = &format::BC3;
                 return true;
 
-            case FileUtils::MakeMagic32('D', 'X', '1', '0'):
+            case utils::MakeMagic32('A', 'T', 'I', '1'):
+            case utils::MakeMagic32('B', 'C', '4', 'U'):
+                m_format = &format::BC4;
+                return true;
+
+            case utils::MakeMagic32('A', 'T', 'I', '2'):
+            case utils::MakeMagic32('B', 'C', '5', 'U'):
+                m_format = &format::BC5;
+                return true;
+
+            case utils::MakeMagic32('D', 'X', '1', '0'):
                 return ReadDxt10Header();
 
             default:
-                std::cerr << std::format("Unknown dds FourCC {}\n", pf.dwFourCC);
+                con::error("Unknown dds FourCC {}", pf.dwFourCC);
                 return false;
             }
         }
@@ -153,7 +165,7 @@ namespace dds
             ExtractSizeAndOffsetFromMask(pf.dwBBitMask, bOffset, bSize);
             ExtractSizeAndOffsetFromMask(pf.dwABitMask, aOffset, aSize);
 
-            for (const auto* imageFormat : ImageFormat::ALL_FORMATS)
+            for (const auto* imageFormat : format::ALL)
             {
                 if (imageFormat->GetType() != ImageFormatType::UNSIGNED)
                     continue;
@@ -169,8 +181,7 @@ namespace dds
                 }
             }
 
-            std::cerr << std::format(
-                "Failed to find dds pixel format: R={:#x} G={:#x} B={:#x} A={:#x}\n", pf.dwRBitMask, pf.dwGBitMask, pf.dwBBitMask, pf.dwABitMask);
+            con::error("Failed to find dds pixel format: R={:#x} G={:#x} B={:#x} A={:#x}", pf.dwRBitMask, pf.dwGBitMask, pf.dwBBitMask, pf.dwABitMask);
 
             return false;
         }
@@ -183,13 +194,13 @@ namespace dds
             return ReadPixelFormatUnsigned(pf);
         }
 
-        _NODISCARD bool ReadHeader()
+        [[nodiscard]] bool ReadHeader()
         {
             DDS_HEADER header{};
             m_stream.read(reinterpret_cast<char*>(&header), sizeof(header));
             if (m_stream.gcount() != sizeof(header))
             {
-                std::cerr << "Failed to read dds data\n";
+                con::error("Failed to read dds data");
                 return false;
             }
 
@@ -249,7 +260,7 @@ namespace dds
 
                     if (m_stream.gcount() != mipSize)
                     {
-                        std::cerr << "Failed to read texture data from dds\n";
+                        con::error("Failed to read texture data from dds");
                         return nullptr;
                     }
                 }
@@ -267,10 +278,13 @@ namespace dds
         unsigned m_depth;
         const ImageFormat* m_format;
     };
+} // namespace
 
+namespace image
+{
     std::unique_ptr<Texture> LoadDds(std::istream& stream)
     {
         DdsLoaderInternal internal(stream);
         return internal.LoadDds();
     }
-} // namespace dds
+} // namespace image

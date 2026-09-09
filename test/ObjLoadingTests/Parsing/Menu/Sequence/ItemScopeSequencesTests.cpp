@@ -1,6 +1,5 @@
 #include "Parsing/Menu/Sequence/ItemScopeSequences.h"
 #include "Parsing/Mock/MockLexer.h"
-#include "Utils/ClassUtils.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
@@ -304,10 +303,11 @@ namespace test::parsing::menu::sequence::item
         REQUIRE(item->m_rect.verticalAlign == 2);
     }
 
-    TEST_CASE("ItemScopeSequences: Can specify origin", "[parsing][sequence][menu]")
+    TEST_CASE("ItemScopeSequences: Origin offsets the item rect", "[parsing][sequence][menu]")
     {
         ItemSequenceTestsHelper helper(FeatureLevel::IW4, false);
         const TokenPos pos;
+        helper.m_item->m_rect = CommonRect{10.0f, 20.0f, 30.0f, 40.0f, 1, 2};
         helper.Tokens({
             SimpleParserValue::Identifier(pos, new std::string("origin")),
             SimpleParserValue::FloatingPoint(pos, 4.20),
@@ -327,12 +327,34 @@ namespace test::parsing::menu::sequence::item
         const auto* item = helper.m_state->m_current_item;
         REQUIRE(item);
 
-        REQUIRE_THAT(item->m_rect.x, WithinRel(4.20));
-        REQUIRE_THAT(item->m_rect.y, WithinRel(13.37));
-        REQUIRE_THAT(item->m_rect.w, WithinRel(0.0));
-        REQUIRE_THAT(item->m_rect.h, WithinRel(0.0));
-        REQUIRE(item->m_rect.horizontalAlign == 0);
-        REQUIRE(item->m_rect.verticalAlign == 0);
+        REQUIRE_THAT(item->m_rect.x, WithinRel(14.20));
+        REQUIRE_THAT(item->m_rect.y, WithinRel(33.37));
+        REQUIRE_THAT(item->m_rect.w, WithinRel(30.0));
+        REQUIRE_THAT(item->m_rect.h, WithinRel(40.0));
+        REQUIRE(item->m_rect.horizontalAlign == 1);
+        REQUIRE(item->m_rect.verticalAlign == 2);
+    }
+
+    TEST_CASE("ItemScopeSequences: Ownerdraw sets the ownerdraw item type", "[parsing][sequence][menu]")
+    {
+        ItemSequenceTestsHelper helper(FeatureLevel::IW4, false);
+        const TokenPos pos;
+        helper.Tokens({
+            SimpleParserValue::Identifier(pos, new std::string("ownerdraw")),
+            SimpleParserValue::Integer(pos, 220),
+            SimpleParserValue::EndOfFile(pos),
+        });
+
+        const auto result = helper.PerformTest();
+
+        REQUIRE(result);
+        REQUIRE(helper.m_consumed_token_count == 2);
+
+        const auto* item = helper.m_state->m_current_item;
+        REQUIRE(item);
+
+        REQUIRE(item->m_owner_draw == 220);
+        REQUIRE(item->m_type == 8); // ITEM_TYPE_OWNERDRAW
     }
 
     TEST_CASE("ItemScopeSequences: Simple dvarStrList works", "[parsing][sequence][menu]")
@@ -379,5 +401,37 @@ namespace test::parsing::menu::sequence::item
         REQUIRE(multiValueFeatures->m_string_values[1] == "standard");
         REQUIRE(multiValueFeatures->m_string_values[2] == "wide 16:10");
         REQUIRE(multiValueFeatures->m_string_values[3] == "wide 16:9");
+    }
+
+    TEST_CASE("ItemScopeSequences: dvarStrList accepts numeric values", "[parsing][sequence][menu]")
+    {
+        ItemSequenceTestsHelper helper(FeatureLevel::IW4, false);
+        const TokenPos pos;
+        helper.Tokens({
+            SimpleParserValue::Identifier(pos, new std::string("dvarStrList")),
+            SimpleParserValue::Character(pos, '{'),
+            SimpleParserValue::String(pos, new std::string("@MPUI_RULES_5MINUTES")),
+            SimpleParserValue::Integer(pos, 5),
+            SimpleParserValue::String(pos, new std::string()),
+            SimpleParserValue::Integer(pos, 0),
+            SimpleParserValue::Character(pos, '}'),
+            SimpleParserValue::EndOfFile(pos),
+        });
+
+        helper.m_item->m_feature_type = CommonItemFeatureType::MULTI_VALUE;
+        helper.m_item->m_multi_value_features = std::make_unique<CommonItemFeaturesMultiValue>();
+
+        const auto result = helper.PerformTest();
+
+        REQUIRE(result);
+        REQUIRE(helper.m_consumed_token_count == 7);
+
+        const auto* item = helper.m_state->m_current_item;
+        REQUIRE(item);
+        const auto* multiValueFeatures = item->m_multi_value_features.get();
+        REQUIRE(multiValueFeatures);
+
+        REQUIRE(multiValueFeatures->m_step_names == std::vector<std::string>{"@MPUI_RULES_5MINUTES", ""});
+        REQUIRE(multiValueFeatures->m_string_values == std::vector<std::string>{"5", "0"});
     }
 } // namespace test::parsing::menu::sequence::item

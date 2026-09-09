@@ -4,6 +4,7 @@
 #include "Game/T6/GameT6.h"
 #include "Game/T6/T6.h"
 #include "Game/T6/ZoneConstantsT6.h"
+#include "Utils/ClassUtils.h"
 #include "Utils/ICapturedDataProvider.h"
 #include "Writing/Processor/OutputProcessorXChunks.h"
 #include "Writing/Steps/StepAddOutputProcessor.h"
@@ -45,7 +46,7 @@ namespace
     ZoneHeader CreateHeaderForParams(const bool isSecure, const bool isOfficial, const bool isEncrypted)
     {
         ZoneHeader header{};
-        header.m_version = ZoneConstants::ZONE_VERSION;
+        header.m_version = ZoneConstants::ZONE_VERSION_PC;
 
         if (isSecure)
         {
@@ -83,7 +84,7 @@ namespace
         {
             // If zone is encrypted, the decryption is applied before the decompression. T6 Zones always use Salsa20.
             auto chunkProcessorSalsa20 = std::make_unique<XChunkProcessorSalsa20Encryption>(
-                ZoneConstants::STREAM_COUNT, zone.m_name, ZoneConstants::SALSA20_KEY_TREYARCH, sizeof(ZoneConstants::SALSA20_KEY_TREYARCH));
+                ZoneConstants::STREAM_COUNT, zone.m_name, ZoneConstants::SALSA20_KEY_TREYARCH_PC, sizeof(ZoneConstants::SALSA20_KEY_TREYARCH_PC));
 
             // If there is encryption, the signed data of the zone is the final hash blocks provided by the Salsa20 IV adaption algorithm
             if (dataToSignProviderPtr)
@@ -107,7 +108,7 @@ std::unique_ptr<ZoneWriter> ZoneWriterFactory::CreateWriter(const Zone& zone) co
     SetupBlocks(*writer);
 
     auto contentInMemory = std::make_unique<StepWriteZoneContentToMemory>(
-        std::make_unique<ContentWriter>(zone), zone, ZoneConstants::OFFSET_BLOCK_BIT_COUNT, ZoneConstants::INSERT_BLOCK);
+        std::make_unique<ContentWriter>(zone), zone, 32u, ZoneConstants::OFFSET_BLOCK_BIT_COUNT, ZoneConstants::INSERT_BLOCK);
     auto* contentInMemoryPtr = contentInMemory.get();
     writer->AddWritingStep(std::move(contentInMemory));
 
@@ -124,7 +125,6 @@ std::unique_ptr<ZoneWriter> ZoneWriterFactory::CreateWriter(const Zone& zone) co
     AddXChunkProcessor(*writer, zone, isEncrypted, &dataToSignProvider, &xChunksProcessor);
 
     // Start of the XFile struct
-    // m_writer->AddWritingStep(std::make_unique<StepSkipBytes>(8)); // Skip size and externalSize fields since they are not interesting for us
     writer->AddWritingStep(std::make_unique<StepWriteZoneSizes>(contentInMemoryPtr));
     writer->AddWritingStep(std::make_unique<StepWriteXBlockSizes>(zone));
 

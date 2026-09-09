@@ -2,6 +2,7 @@
 
 #include "RawTemplaterArguments.h"
 #include "Templating/Templater.h"
+#include "Utils/Logging/Log.h"
 
 #include <filesystem>
 #include <fstream>
@@ -16,12 +17,12 @@ class RawTemplater::Impl
     bool m_write_build_log;
     std::ofstream m_build_log_file;
 
-    _NODISCARD bool GenerateCode(const std::string& filename)
+    [[nodiscard]] bool GenerateCode(const std::string& filename)
     {
         std::ifstream file(filename, std::ios::in | std::ios::binary);
         if (!file.is_open())
         {
-            std::cerr << "Failed to open file \"" << filename << "\"\n";
+            con::error("Failed to open file \"{}\"", filename);
             return false;
         }
 
@@ -45,6 +46,8 @@ public:
 
     int Run(const int argc, const char** argv)
     {
+        con::init();
+
         auto shouldContinue = true;
         if (!m_args.ParseArgs(argc, argv, shouldContinue))
             return 1;
@@ -61,7 +64,7 @@ public:
             m_build_log_file = std::ofstream(m_args.m_build_log_file, std::ios::out | std::ios::binary);
             if (!m_build_log_file.is_open())
             {
-                std::cerr << "Failed to open build log file \"" << m_args.m_build_log_file << "\"\n";
+                con::error("Failed to open build log file \"{}\"", m_args.m_build_log_file);
                 return false;
             }
             m_write_build_log = true;
